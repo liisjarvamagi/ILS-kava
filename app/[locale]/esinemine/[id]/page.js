@@ -11,7 +11,6 @@ import { t } from '../../../../lib/i18n';
 import BookmarkButton from '../../../../components/BookmarkButton';
 import ReadMore from '../../../../components/ReadMore';
 import StageMap from '../../../../components/StageMap';
-import InfoCards from '../../../../components/InfoCards';
 
 export const revalidate = 60;
 
@@ -98,8 +97,6 @@ export default async function PerformancePage({ params }) {
           </div>
         </>
       )}
-
-      <InfoCards info={data.info} locale={locale} />
     </div>
   );
 }

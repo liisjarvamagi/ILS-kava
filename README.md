@@ -23,9 +23,7 @@ i-land-sound-ehitusplaan.md ja i-land-sound-tegevuskava-faas2.md.
   tagid, esinejad), esineja (pilt, bio, esinemised), ala (kirjeldus,
   programm päevade kaupa); vale aadress annab 404
 - Esinemise ja ala lehel on kaardi eelvaade ja "Ava juhised" nupp
-  (Google Maps), kui alale on antud GPS-koordinaadid, ning "Oluline
-  info" kaardid (kohalejõudmine, parkimine, majutus, märkused) —
-  sisu tuleb event_info tabelist ja näidistekstid tuleb üle vaadata
+  (Google Maps), kui alale on antud GPS-koordinaadid
 - Minu kava: järjehoidjaga lisamine, eemaldamine tagasivõtmisega,
   punkt päevanupul, "Laadi kalendrisse (.ics)" nupp
 - Esinejate leht (alt-menüü 5. nupp): otsing, sortimine A–Z või
@@ -54,7 +52,10 @@ i-land-sound-ehitusplaan.md ja i-land-sound-tegevuskava-faas2.md.
   programmi lingi. Sündmuse ja ala lehel on Google'i kaardi asemel
   festivalikaardi väljavõte ala markeriga; Google Mapsi juhiste link
   jääb autoga tulijale alles. Ala kohta kaardil nihutad adminis
-  (Alad → klõpsa kaardil)
+  (Alad → klõpsa kaardil). Kaardilehe pealkiri on "Kaart ja info" ja
+  kaartide all on "Oluline info" kaardid (kohalejõudmine, parkimine,
+  majutus, märkused) — sisu tuleb event_info tabelist ja on admini
+  Oluline info sakis muudetav
 - Hommikukiri (faas 2): igal festivalipäeval kell 09.00 saadab äpp
   tellinud kasutajatele meili nende tänase kavaga. Sisu ja kujunduse
   muudad adminis Meilid sakis ({{nimi}}, {{kava}} ja {{loobu_link}}
