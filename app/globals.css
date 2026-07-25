@@ -1356,3 +1356,12 @@ a.map-action { display: flex; align-items: center; justify-content: center; }
   box-shadow: 0 2px 8px rgba(0,0,0,0.5);
   pointer-events: none;
 }
+
+/* Admini pildi eelvaade */
+.admin-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 9px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}

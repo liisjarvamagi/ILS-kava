@@ -76,6 +76,9 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
      määramiseks — tee see kohe ära)
    - `supabase/migrations/0006_kaardipunktid.sql` (alade stardikohad
      festivalikaardil; täpsemaks nihutad adminis)
+   - `supabase/migrations/0007_failide_hoidla.sql` (piltide ja lugude
+     hoidla: admin laeb esineja fotod ja mp3-d üles otse admini
+     vormist, vaadata saavad kõik, üles laadida ainult adminid)
    - `supabase/seed.sql` (2026 päris kava: 17 ala, 171 esinemist)
    - `supabase/seed2_esinejad.sql` (teeb pealkirjadest 160 päris
      esinejat: muusikaaladel nimed, töötubadel juhendajad; TBA jms

@@ -51,6 +51,24 @@ export function slugify(name) {
     .replace(/^-+|-+$/g, '') || 'nimi';
 }
 
+// Faili üleslaadimine Supabase Storage'i. Tagastab avaliku URL-i.
+// RLS lubab üles laadida ainult adminitel; failinimi tehakse ohutuks
+// ja saab juhusliku lõpu, et sama nimega failid ei sõidaks üksteisest üle.
+export async function uploadToStorage(bucket, file, baseName) {
+  const supabase = supabaseBrowser();
+  if (!supabase) throw new Error('Andmebaas seadistamata');
+  const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
+  const rand = crypto.getRandomValues(new Uint32Array(1))[0].toString(36);
+  const path = `${slugify(baseName || file.name)}-${rand}.${ext}`;
+  const { error } = await supabase.storage.from(bucket).upload(path, file, {
+    cacheControl: '31536000',
+    upsert: false
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+  return data.publicUrl;
+}
+
 // Avaliku kava kohene uuendus: server kontrollib, et kutsuja on admin.
 export async function revalidatePublic() {
   try {

@@ -4,7 +4,7 @@
 // play nupu andmed.
 import { useMemo, useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
-import { slugify, revalidatePublic } from './adminShared';
+import { slugify, revalidatePublic, uploadToStorage } from './adminShared';
 
 const LINK_KEYS = ['instagram', 'facebook', 'spotify', 'soundcloud', 'youtube', 'website'];
 const EMPTY = {
@@ -17,11 +17,42 @@ export default function AdminArtists({ data, onChanged }) {
   const [form, setForm] = useState(EMPTY);
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(null); // 'pilt' | 'lugu' | null
   const [msg, setMsg] = useState(null);
 
   function set(patch) { setForm((f) => ({ ...f, ...patch })); }
   function setLink(key, value) {
     setForm((f) => ({ ...f, links: { ...f.links, [key]: value } }));
+  }
+
+  // Pildi/loo üleslaadimine: fail läheb Supabase Storage'i ja URL
+  // täitub automaatselt. Suuruse ja tüübi kontroll enne saatmist.
+  async function handleUpload(e, kind) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (kind === 'pilt') {
+      if (!file.type.startsWith('image/')) { setMsg('Vali pildifail (jpg, png, webp).'); return; }
+      if (file.size > 5 * 1024 * 1024) { setMsg('Pilt on liiga suur (max 5 MB).'); return; }
+    } else {
+      if (!file.type.startsWith('audio/')) { setMsg('Vali helifail (mp3).'); return; }
+      if (file.size > 20 * 1024 * 1024) { setMsg('Lugu on liiga suur (max 20 MB).'); return; }
+    }
+    setUploading(kind); setMsg(null);
+    try {
+      const url = await uploadToStorage(
+        kind === 'pilt' ? 'pildid' : 'lood',
+        file,
+        form.name || 'esineja'
+      );
+      if (kind === 'pilt') set({ image_url: url });
+      else set({ track_file_url: url });
+      setMsg('Fail üles laetud ✅ (ära unusta Salvesta nuppu)');
+    } catch (err) {
+      setMsg('Üleslaadimine ebaõnnestus: ' + (err?.message || 'tundmatu viga') +
+        '. Kontrolli, et 0007 migratsioon on käivitatud.');
+    }
+    setUploading(null);
   }
 
   function edit(a) {
@@ -101,10 +132,22 @@ export default function AdminArtists({ data, onChanged }) {
             <input value={form.slug} placeholder={slugify(form.name)}
               onChange={(e) => set({ slug: e.target.value })} />
           </label>
-          <label>Pildi aadress (Storage → pildid → Get URL)
+          <label>Pilt — lae fail üles või kleebi aadress
             <input value={form.image_url} placeholder="https://…"
               onChange={(e) => set({ image_url: e.target.value })} />
           </label>
+        </div>
+        <div className="admin-actions">
+          <label className="btn-secondary admin-file">
+            {uploading === 'pilt' ? 'Laen üles…' : '📷 Lae pilt üles'}
+            <input type="file" accept="image/*" hidden
+              disabled={uploading !== null}
+              onChange={(e) => handleUpload(e, 'pilt')} />
+          </label>
+          {form.image_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={form.image_url} alt="" className="admin-thumb" />
+          )}
         </div>
 
         <div className="admin-grid">
@@ -128,9 +171,17 @@ export default function AdminArtists({ data, onChanged }) {
           <label>Loo pealkiri (minimängija ribal)
             <input value={form.track_title} onChange={(e) => set({ track_title: e.target.value })} />
           </label>
-          <label>Loo mp3 otselink (mängib kohe; kui täidetud, on see esimene valik)
-            <input value={form.track_file_url} placeholder="https://…supabase.co/storage/…/lood/…"
+          <label>Loo mp3 fail (mängib kohe; kui täidetud, on see esimene valik)
+            <input value={form.track_file_url} placeholder="https://…"
               onChange={(e) => set({ track_file_url: e.target.value })} />
+          </label>
+        </div>
+        <div className="admin-actions">
+          <label className="btn-secondary admin-file">
+            {uploading === 'lugu' ? 'Laen üles…' : '🎵 Lae mp3 üles'}
+            <input type="file" accept="audio/*" hidden
+              disabled={uploading !== null}
+              onChange={(e) => handleUpload(e, 'lugu')} />
           </label>
         </div>
 
