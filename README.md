@@ -39,7 +39,13 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
   profiililehel e-post, hommikukirja linnuke ja väljalogimine;
   sisselogimisel liidetakse telefoni kava kontoga (user_schedule),
   duplikaate ei teki ja RLS tagab, et igaüks näeb ainult enda kava
-- Keeled ET ja EN (/et ja /en)
+- Adminipaneel /admin (6. tükk): esinemiste vorm (ala, päev, ajad,
+  esinejad otsinguga, tagid, mustand/avaldatud, kattuvuse hoiatus,
+  tõlkemärgis), esinejate, alade, tagide ja olulise info haldus,
+  adminite haldus e-posti järgi (superadmin). Ligipääs ainult admins
+  tabelis olijatele; kirjutamise kaitseb andmebaasis RLS ja iga
+  salvestus värskendab avalikku kava kohe
+- Keeled ET ja EN (/et ja /en); admin on eestikeelne
 - Kaart on kohatäide — tuleb 7. tükis
 
 ## Käivitamine oma arvutis
@@ -57,6 +63,9 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
      mp3 faili või Spotify/SoundCloudi/YouTube'i lingi veerud)
    - `supabase/migrations/0004_lemmikesinejad.sql` (lemmikesinejad
      kontosse: südamed liiguvad seadmete vahel kaasa)
+   - `supabase/migrations/0005_admini_funktsioonid.sql` (adminipaneeli
+     funktsioonid; faili lõpus on juhis ESIMESE superadmini
+     määramiseks — tee see kohe ära)
    - `supabase/seed.sql` (2026 päris kava: 17 ala, 171 esinemist)
    - `supabase/seed2_esinejad.sql` (teeb pealkirjadest 160 päris
      esinejat: muusikaaladel nimed, töötubadel juhendajad; TBA jms
@@ -96,5 +105,5 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
 
 ## Järgmised tükid
 
-Vaata i-land-sound-ehitusplaan.md — järgmisena tükk 6 (adminipaneel),
-siis tükk 7 (kaart) ja tükk 8 (hommikukiri).
+Vaata i-land-sound-ehitusplaan.md — järgmisena tükk 7 (kaart) ja
+tükk 8 (hommikukiri).

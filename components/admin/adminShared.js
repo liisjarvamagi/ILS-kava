@@ -1,0 +1,89 @@
+'use client';
+// Adminipaneeli ühised abifunktsioonid: aja teisendused festivali
+// loogikaga (öö 00.00–06.00 kuulub eelmise õhtu kavva), slugi
+// tegemine ja avaliku kava kohene värskendus.
+import { supabaseBrowser } from '../../lib/supabaseClient';
+
+// ISO aeg → { date, time } Eesti ajas (vormide täitmiseks)
+export function isoToParts(iso) {
+  const d = new Date(iso);
+  const s = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Tallinn',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  }).format(d);
+  const [date, time] = s.split(' ');
+  return { date, time };
+}
+
+function addDays(dateStr, days) {
+  const d = new Date(dateStr + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Festivalipäev + kellaaeg → ISO aeg (+03:00, Eesti suveaeg).
+// Kui kell on enne 06.00, on tegu sama ÕHTU ööprogrammiga ehk
+// järgmise kalendripäeva varahommikuga.
+export function partsToIso(festivalDay, time) {
+  const hour = Number(time.split(':')[0]);
+  const date = hour < 6 ? addDays(festivalDay, 1) : festivalDay;
+  return `${date}T${time}:00+03:00`;
+}
+
+// Algus ja lõpp koos: kui lõpp jääb algusest ettepoole või samale
+// kohale, käib ta üle südaöö ja nihkub päeva võrra edasi.
+export function timesToIso(festivalDay, startTime, endTime) {
+  const start_at = partsToIso(festivalDay, startTime);
+  let end_at = partsToIso(festivalDay, endTime);
+  if (new Date(end_at) <= new Date(start_at)) {
+    end_at = addDays(end_at.slice(0, 10), 1) + end_at.slice(10);
+  }
+  return { start_at, end_at };
+}
+
+export function slugify(name) {
+  return (name || '')
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'nimi';
+}
+
+// Avaliku kava kohene uuendus: server kontrollib, et kutsuja on admin.
+export async function revalidatePublic() {
+  try {
+    const supabase = supabaseBrowser();
+    if (!supabase) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await fetch('/api/revalidate', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.access_token}` }
+    });
+  } catch {}
+}
+
+// Lae kõik admini andmed ühe korraga (ka mustandid — RLS lubab
+// adminil neid näha, tavakasutajal mitte).
+export async function loadAdminData() {
+  const supabase = supabaseBrowser();
+  if (!supabase) return null;
+  const [stages, artists, perfs, tags, info] = await Promise.all([
+    supabase.from('stages').select('*').order('sort_order'),
+    supabase.from('artists').select('*').order('name'),
+    supabase.from('performances')
+      .select('*, performance_artists(artist_id, sort_order), performance_tags(tag_id)')
+      .order('start_at'),
+    supabase.from('tags').select('*').order('name_et'),
+    supabase.from('event_info').select('*').order('sort_order')
+  ]);
+  return {
+    stages: stages.data || [],
+    artists: artists.data || [],
+    performances: perfs.data || [],
+    tags: tags.data || [],
+    info: info.data || []
+  };
+}

@@ -17,6 +17,7 @@ export default function ProfileArea({ locale, authReady }) {
   const [user, setUser] = useState(null);
   const [wantsEmail, setWantsEmail] = useState(false);
   const [savedCount, setSavedCount] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!authReady) return;
@@ -42,6 +43,12 @@ export default function ProfileArea({ locale, authReady }) {
           .eq('id', session.user.id)
           .single();
         if (data) setWantsEmail(Boolean(data.wants_daily_email));
+        // kas kasutaja on admin → näita adminipaneeli linki
+        const { data: adminRow } = await supabase.from('admins')
+          .select('user_id')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        setIsAdmin(Boolean(adminRow));
       }
     }
 
@@ -98,6 +105,12 @@ export default function ProfileArea({ locale, authReady }) {
         </span>
         <span className="switch" aria-hidden><span className="switch-dot" /></span>
       </button>
+
+      {isAdmin && (
+        <a href="/admin" className="btn-secondary profile-admin-link">
+          🛠 Ava adminipaneel
+        </a>
+      )}
 
       <button className="btn-secondary profile-signout" onClick={signOut}>
         {tr.profile_signout}
