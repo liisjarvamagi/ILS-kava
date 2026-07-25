@@ -11,6 +11,7 @@ import AdminArtists from './AdminArtists';
 import AdminStages from './AdminStages';
 import AdminTags from './AdminTags';
 import AdminInfo from './AdminInfo';
+import AdminImport from './AdminImport';
 import AdminAdmins from './AdminAdmins';
 
 const TABS = [
@@ -19,6 +20,7 @@ const TABS = [
   { key: 'stages', label: 'Alad' },
   { key: 'tags', label: 'Tagid' },
   { key: 'info', label: 'Oluline info' },
+  { key: 'import', label: '⇪ Import' },
   { key: 'admins', label: 'Adminid', superOnly: true }
 ];
 
@@ -102,6 +104,7 @@ export default function AdminApp() {
           {tab === 'stages' && <AdminStages data={data} onChanged={refresh} />}
           {tab === 'tags' && <AdminTags data={data} onChanged={refresh} />}
           {tab === 'info' && <AdminInfo data={data} onChanged={refresh} />}
+          {tab === 'import' && <AdminImport data={data} onChanged={refresh} />}
           {tab === 'admins' && role === 'superadmin' && <AdminAdmins />}
         </main>
       )}

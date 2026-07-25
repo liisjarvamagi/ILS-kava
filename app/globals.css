@@ -1204,3 +1204,28 @@ a.signin-sheet-btn { display: flex; align-items: center; justify-content: center
 a.admin-note-btn { display: flex; align-items: center; justify-content: center; }
 .profile-admin-link { margin-bottom: 12px; }
 a.profile-admin-link { display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* ── Admini import ── */
+.admin-import-area {
+  width: 100%;
+  margin: 10px 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  padding: 10px 12px;
+  white-space: pre;
+}
+.admin-import-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 340px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+.admin-row-err { border-color: #e07575; }
+.admin-file { cursor: pointer; }
+label.admin-file { display: flex; align-items: center; justify-content: center; width: auto; padding: 0 18px; }

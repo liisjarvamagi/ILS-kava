@@ -44,7 +44,9 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
   tõlkemärgis), esinejate, alade, tagide ja olulise info haldus,
   adminite haldus e-posti järgi (superadmin). Ligipääs ainult admins
   tabelis olijatele; kirjutamise kaitseb andmebaasis RLS ja iga
-  salvestus värskendab avalikku kava kohe
+  salvestus värskendab avalikku kava kohe; Import sakk laseb
+  esinemised ja esinejate andmed sisse tuua tabelina (kleebi
+  Excelist/Sheetsist või .csv fail, eelvaade veakontrolliga)
 - Keeled ET ja EN (/et ja /en); admin on eestikeelne
 - Kaart on kohatäide — tuleb 7. tükis
 
