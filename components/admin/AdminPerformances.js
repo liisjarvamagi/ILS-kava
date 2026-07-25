@@ -25,6 +25,12 @@ export default function AdminPerformances({ data, onChanged }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
   const [listDay, setListDay] = useState('all');
+  // Massimuudatused: valitud esinemiste id-d + toimingute väljad
+  const [selected, setSelected] = useState([]);
+  const [shiftMin, setShiftMin] = useState(60);
+  const [bulkDay, setBulkDay] = useState('');
+  const [bulkStage, setBulkStage] = useState('');
+  const [bulkMsg, setBulkMsg] = useState(null);
 
   const stageById = useMemo(() => Object.fromEntries(data.stages.map((s) => [s.id, s])), [data]);
   const artistById = useMemo(() => Object.fromEntries(data.artists.map((a) => [a.id, a])), [data]);
@@ -173,6 +179,70 @@ export default function AdminPerformances({ data, onChanged }) {
     (p) => listDay === 'all' || p.festival_day === listDay
   );
 
+  // ── Massimuudatused ──
+  function toggleSel(id) {
+    setSelected((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
+  }
+  const selPerfs = data.performances.filter((p) => selected.includes(p.id));
+
+  async function bulk(fn, confirmText) {
+    if (!selPerfs.length) return;
+    if (confirmText && !window.confirm(confirmText)) return;
+    setBusy(true); setBulkMsg(null);
+    const supabase = supabaseBrowser();
+    let ok = 0, fail = 0;
+    for (const p of selPerfs) {
+      const { error } = await fn(supabase, p);
+      if (error) fail++; else ok++;
+    }
+    await revalidatePublic();
+    await onChanged();
+    setBusy(false);
+    setBulkMsg(`Tehtud: ${ok}${fail ? ` · ebaõnnestus: ${fail}` : ''}`);
+    if (!fail) setSelected([]);
+  }
+
+  const addMinutes = (iso, min) =>
+    new Date(new Date(iso).getTime() + min * 60000).toISOString();
+
+  const bulkShift = () => {
+    const min = Number(shiftMin);
+    if (!Number.isFinite(min) || min === 0) return;
+    bulk((sb, p) => sb.from('performances').update({
+      start_at: addMinutes(p.start_at, min),
+      end_at: addMinutes(p.end_at, min)
+    }).eq('id', p.id));
+  };
+
+  const bulkMoveDay = () => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(bulkDay)) return;
+    bulk((sb, p) => {
+      // nihuta ajatempleid sama palju päevi, kui festivalipäev liigub
+      const deltaDays = Math.round(
+        (new Date(bulkDay + 'T12:00:00Z') - new Date(p.festival_day + 'T12:00:00Z')) / 86400000
+      );
+      return sb.from('performances').update({
+        festival_day: bulkDay,
+        start_at: addMinutes(p.start_at, deltaDays * 24 * 60),
+        end_at: addMinutes(p.end_at, deltaDays * 24 * 60)
+      }).eq('id', p.id);
+    });
+  };
+
+  const bulkMoveStage = () => {
+    if (!bulkStage) return;
+    bulk((sb, p) => sb.from('performances').update({ stage_id: bulkStage }).eq('id', p.id));
+  };
+
+  const bulkPublish = (value) =>
+    bulk((sb, p) => sb.from('performances').update({ is_published: value }).eq('id', p.id));
+
+  const bulkDelete = () =>
+    bulk(
+      (sb, p) => sb.from('performances').delete().eq('id', p.id),
+      `Kustutan ${selPerfs.length} esinemist? Seda ei saa tagasi võtta.`
+    );
+
   return (
     <>
       <section className="admin-card">
@@ -313,7 +383,53 @@ export default function AdminPerformances({ data, onChanged }) {
             <button key={d} className={`admin-chip ${listDay === d ? 'on' : ''}`}
               onClick={() => setListDay(d)}>{d.slice(5)}</button>
           ))}
+          <button className="admin-chip"
+            onClick={() => setSelected(shownPerfs.map((p) => p.id))}>
+            ☑ Vali kõik nähtavad
+          </button>
+          {selected.length > 0 && (
+            <button className="admin-chip" onClick={() => setSelected([])}>
+              ✕ Tühista valik ({selected.length})
+            </button>
+          )}
         </div>
+
+        {selected.length > 0 && (
+          <div className="admin-bulk">
+            <p className="admin-hint">Valitud {selected.length} esinemist.
+              Toimingud rakenduvad KÕIGILE valitutele. Aja nihutamine
+              sobib nt kogu kava edasilükkamiseks; päeva vahetus nihutab
+              ka kellaajad õigele kuupäevale. Hooaja arhiveerimiseks vali
+              vana aasta päevad ja vajuta Peida.</p>
+            <div className="admin-grid">
+              <label>Nihuta aegu (minutid; miinus = varasemaks)
+                <input type="number" value={shiftMin}
+                  onChange={(e) => setShiftMin(e.target.value)} />
+              </label>
+              <label>Tõsta päevale
+                <input type="date" value={bulkDay}
+                  onChange={(e) => setBulkDay(e.target.value)} />
+              </label>
+              <label>Tõsta alale
+                <select value={bulkStage} onChange={(e) => setBulkStage(e.target.value)}>
+                  <option value="">— vali ala —</option>
+                  {data.stages.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name_et}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {bulkMsg && <p className="admin-msg">{bulkMsg}</p>}
+            <div className="admin-actions">
+              <button className="btn-secondary" disabled={busy} onClick={bulkShift}>⏱ Nihuta aegu</button>
+              <button className="btn-secondary" disabled={busy || !bulkDay} onClick={bulkMoveDay}>📅 Tõsta päevale</button>
+              <button className="btn-secondary" disabled={busy || !bulkStage} onClick={bulkMoveStage}>📍 Tõsta alale</button>
+              <button className="btn-secondary" disabled={busy} onClick={() => bulkPublish(true)}>👁 Avalda</button>
+              <button className="btn-secondary" disabled={busy} onClick={() => bulkPublish(false)}>🚫 Peida</button>
+              <button className="btn-secondary" disabled={busy} onClick={bulkDelete}>🗑 Kustuta</button>
+            </div>
+          </div>
+        )}
         <div className="admin-list">
           {shownPerfs.map((p) => {
             const s = stageById[p.stage_id];
@@ -324,6 +440,12 @@ export default function AdminPerformances({ data, onChanged }) {
             const missingEn = Boolean(p.title_et) !== Boolean(p.title_en);
             return (
               <div key={p.id} className="admin-row">
+                <input
+                  type="checkbox"
+                  className="admin-rowcheck"
+                  checked={selected.includes(p.id)}
+                  onChange={() => toggleSel(p.id)}
+                />
                 <span className="stage-dot" style={{ background: s?.color || '#666' }} />
                 <div className="admin-row-main">
                   <div className="admin-row-title">

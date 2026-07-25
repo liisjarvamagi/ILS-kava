@@ -3,8 +3,9 @@
 Festivali kava, mille külastaja avab telefonis, filtreerib alade kaupa ja
 paneb ühe puutega kokku oma isikliku kava. Paigutus ja loogika on tehtud
 Brella äpi eeskujul, värvid on festivali omad. Ehitatud tükkide kaupa —
-praegu on valmis tükid 1, 2, 3 ja 4 ning sisselogimise kujundus.
-Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
+valmis on tükid 1–7 ja teise faasi täiendused (hommikukiri, targem
+import, massimuudatused, kava planeerija). Ehitusjärjekord on failides
+i-land-sound-ehitusplaan.md ja i-land-sound-tegevuskava-faas2.md.
 
 ## Mis on valmis
 
@@ -54,6 +55,25 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
   festivalikaardi väljavõte ala markeriga; Google Mapsi juhiste link
   jääb autoga tulijale alles. Ala kohta kaardil nihutad adminis
   (Alad → klõpsa kaardil)
+- Hommikukiri (faas 2): igal festivalipäeval kell 09.00 saadab äpp
+  tellinud kasutajatele meili nende tänase kavaga. Sisu ja kujunduse
+  muudad adminis Meilid sakis ({{nimi}}, {{kava}} ja {{loobu_link}}
+  kohatäited), "Saada testkiri mulle" nupp näitab tulemust enne päris
+  saatmist. Igas kirjas on loobumislink, mis töötab ilma sisselogimata
+- Targem import (faas 2): kui tabelis on esineja nimi, mida süsteemis
+  pole, aga on väga sarnane olemasolevaga (nt trükiviga), pakub
+  eelvaade "Kasuta: …" nuppu. Kui duplikaat siiski tekkis, liidab
+  Esinejad saki "Liida teise esinejaga" tööriist kaks profiili kokku:
+  esinemised, lingid ja tühjad väljad liiguvad alles jäävasse
+- Massimuudatused (faas 2): Esinemised sakis saab linnukestega valida
+  mitu esinemist korraga ning nihutada aegu, tõsta teisele päevale või
+  alale, avaldada/peita ja kustutada ühe liigutusega
+- Kava planeerija (faas 2): kalendrivaade nagu Google Calendar — read
+  on alad, aeg jookseb paremale. Plokki lohistad hiirega (aeg liigub
+  5 min sammuga, teisele reale tõstes vahetub ala), paremast servast
+  venitad pikkust, klõps plokil avab muutmise, klõps tühjal kohal loob
+  uue esinemise. Kattuvus samal alal saab punase raami, mustandid on
+  katkendjoonega. Iga muudatus salvestub kohe
 - Keeled ET ja EN (/et ja /en); admin on eestikeelne
 
 ## Käivitamine oma arvutis
@@ -79,11 +99,12 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
    - `supabase/migrations/0007_failide_hoidla.sql` (piltide ja lugude
      hoidla: admin laeb esineja fotod ja mp3-d üles otse admini
      vormist, vaadata saavad kõik, üles laadida ainult adminid)
+   - `supabase/migrations/0008_hommikukiri.sql` (hommikukirja mall:
+     admin saab kirja sisu Meilid sakis muuta)
    - `supabase/seed.sql` (2026 päris kava: 17 ala, 171 esinemist)
    - `supabase/seed2_esinejad.sql` (teeb pealkirjadest 160 päris
      esinejat: muusikaaladel nimed, töötubadel juhendajad; TBA jms
-     jäävad pealkirjadeks. Pildid, biod ja lood lisad Table Editoris
-     artists tabelisse, kuni adminipaneel valmib)
+     jäävad pealkirjadeks. Pildid, biod ja lood lisad adminipaneelis)
 5. `npm run dev` → ava http://localhost:3000
 
 ## Sisselogimise seadistus Supabase'is (5. tükk)
@@ -101,6 +122,40 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
    redirect aadressiks Supabase'i näidatud .../auth/v1/callback).
    Client ID ja Secret kleebi Supabase'i Google provideri alla.
 
+## Hommikukirja seadistus (faas 2)
+
+Hommikukiri vajab kolme asja: meilisaatja konto, salajased võtmed ja
+Verceli ajastuse. Ilma nendeta äpp töötab tavaliselt edasi, lihtsalt
+kirju ei saadeta.
+
+1. Loo tasuta konto resend.com lehel ja võta sealt API võti
+   (API Keys → Create API Key). Tasuta paketiga saab saata 100 kirja
+   päevas, alguseks piisab. Kui tahad saata oma domeeni aadressilt
+   (nt kava@ilandsound.ee), kinnita Resendis ka domeen; muidu läheb
+   kiri testiaadressilt onboarding@resend.dev
+2. Lisa neli uut keskkonnamuutujat nii Vercelisse (Settings →
+   Environment Variables) kui ka oma arvuti .env.local faili:
+   - `SUPABASE_SERVICE_ROLE_KEY` — Supabase Dashboard → Settings →
+     API Keys → service_role. NB! See võti annab täisligipääsu
+     andmebaasile, seda ei tohi kunagi panna koodi ega GitHubi,
+     ainult keskkonnamuutujatesse
+   - `RESEND_API_KEY` — Resendi API võti
+   - `CRON_SECRET` — mõtle ise välja pikk juhuslik jada (nt 40
+     märki); see kaitseb saatmise aadressi võõraste eest ja
+     allkirjastab loobumislingid
+   - `EMAIL_FROM` — saatja, nt `I Land Sound <kava@ilandsound.ee>`
+     (võib alguses ära jätta, siis kasutatakse Resendi testiaadressi)
+3. Käivita Supabase'is `supabase/migrations/0008_hommikukiri.sql`
+   (kui sa punktis "Käivitamine" seda juba ei teinud)
+4. Pushi kood GitHubi — vercel.json failis on ajastus juba kirjas
+   (iga päev 09.00 Eesti aja järgi). Vercel loeb selle ise sisse
+5. Kontrolli adminis: Meilid sakk → "Saada testkiri mulle". Kiri
+   tuleb Su enda aadressile ja näitab, milline hommikukiri välja näeb
+
+Kasutaja tellib kirja profiililehel linnukesega "Saada mulle igal
+festivalihommikul minu päeva kava". Kiri läheb ainult neile, kes on
+linnukese pannud, ja ainult festivalipäevadel.
+
 ## GitHubi ja Vercelisse
 
 1. Loo GitHubis privaatne repo `ilandsound-kava`
@@ -116,9 +171,10 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
   andmebaasis Row Level Security
 - Telefoni salvestub ainult esinemiste ID-de loend, mitte isikuandmed
 
-## Järgmised tükid
+## Järgmised sammud
 
-Vaata i-land-sound-ehitusplaan.md — järgmisena tükk 8 (hommikukiri)
-ja enne avalikustamist tester + turvaaudit. Fail
-components/LocationBlock.js pole enam kasutusel ja selle võib
-kustutada.
+Faas 2 on valmis (hommikukiri, targem import, massimuudatused, kava
+planeerija). Enne avalikustamist tasub teha testring päris andmetega
+ja turvaaudit. Vana kava arhiveerimiseks vali Esinemised sakis vana
+aasta esinemised linnukestega ja vajuta Peida — profiilid ja pildid
+jäävad alles järgmiseks aastaks.

@@ -19,6 +19,7 @@ export default function AdminArtists({ data, onChanged }) {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(null); // 'pilt' | 'lugu' | null
   const [msg, setMsg] = useState(null);
+  const [mergeTarget, setMergeTarget] = useState('');
 
   function set(patch) { setForm((f) => ({ ...f, ...patch })); }
   function setLink(key, value) {
@@ -108,6 +109,52 @@ export default function AdminArtists({ data, onChanged }) {
     if (form.id === a.id) setForm(EMPTY);
     await revalidatePublic();
     await onChanged();
+  }
+
+  // Duplikaadi liitmine: praeguse esineja (nt trükiveaga tekkinud)
+  // esinemised tõstetakse õigele esinejale, tühjad väljad täidetakse
+  // ja duplikaat kustutatakse.
+  async function mergeInto() {
+    const target = data.artists.find((a) => a.id === mergeTarget);
+    if (!form.id || !target || target.id === form.id) return;
+    if (!window.confirm(
+      `Liidan esineja "${form.name}" esinejaga "${target.name}"?\n` +
+      `Kõik esinemised tõstetakse üle ja "${form.name}" kustutatakse. Seda ei saa tagasi võtta.`
+    )) return;
+    setBusy(true); setMsg(null);
+    const supabase = supabaseBrowser();
+
+    // 1. esinemised üle: kui sihtesineja on juba samal esinemisel,
+    // kustutame duplikaadi seose; muidu tõstame ümber
+    const { data: links } = await supabase.from('performance_artists')
+      .select('performance_id, sort_order').eq('artist_id', form.id);
+    for (const l of links || []) {
+      const { error } = await supabase.from('performance_artists')
+        .update({ artist_id: target.id })
+        .eq('artist_id', form.id).eq('performance_id', l.performance_id);
+      if (error) {
+        await supabase.from('performance_artists').delete()
+          .eq('artist_id', form.id).eq('performance_id', l.performance_id);
+      }
+    }
+    // 2. täida sihtesineja tühjad väljad duplikaadi omadega
+    const patch = {};
+    for (const k of ['country', 'image_url', 'bio_et', 'bio_en', 'track_link', 'track_title', 'track_file_url']) {
+      if (!target[k] && form[k]) patch[k] = form[k];
+    }
+    const mergedLinks = { ...(form.links || {}), ...(target.links || {}) };
+    if (Object.keys(mergedLinks).length) patch.links = mergedLinks;
+    if (Object.keys(patch).length) {
+      await supabase.from('artists').update(patch).eq('id', target.id);
+    }
+    // 3. kustuta duplikaat
+    const { error: delErr } = await supabase.from('artists').delete().eq('id', form.id);
+    setBusy(false);
+    if (delErr) { setMsg('Liitmine jäi pooleli: ' + delErr.message); return; }
+    setForm(EMPTY); setMergeTarget('');
+    await revalidatePublic();
+    await onChanged();
+    setMsg(`Liidetud: ${target.name} ✅`);
   }
 
   const shown = useMemo(() => {
@@ -206,6 +253,29 @@ export default function AdminArtists({ data, onChanged }) {
             </button>
           )}
         </div>
+
+        {form.id && (
+          <>
+            <label className="admin-label">Kas see on duplikaat (nt trükiveaga
+              tekkinud)? Vali õige esineja ja liida — esinemised tõstetakse
+              üle ja see kirje kustutatakse.</label>
+            <div className="admin-grid">
+              <label>Liida esinejaga
+                <select value={mergeTarget} onChange={(e) => setMergeTarget(e.target.value)}>
+                  <option value="">— vali —</option>
+                  {data.artists.filter((a) => a.id !== form.id).map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="admin-actions">
+              <button className="btn-secondary" disabled={busy || !mergeTarget} onClick={mergeInto}>
+                ⇄ Liida ja kustuta duplikaat
+              </button>
+            </div>
+          </>
+        )}
       </section>
 
       <section className="admin-card">

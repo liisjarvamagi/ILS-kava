@@ -74,3 +74,40 @@ export function parseBool(value, fallback) {
 export function splitList(value) {
   return (value || '').split(';').map((s) => s.trim()).filter(Boolean);
 }
+
+// Kahe nime "kaugus" ehk mitu tähte tuleb muuta, et üks teiseks
+// saada. Kasutame trükivigade püüdmiseks: kaugus 1–2 on tõenäoliselt
+// sama nimi kirjaveaga.
+export function editDistance(a, b) {
+  a = a.toLowerCase(); b = b.toLowerCase();
+  if (a === b) return 0;
+  if (Math.abs(a.length - b.length) > 2) return 99;
+  const prev = new Array(b.length + 1);
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    let diag = prev[0];
+    prev[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = prev[j];
+      prev[j] = Math.min(
+        prev[j] + 1,
+        prev[j - 1] + 1,
+        diag + (a[i - 1] === b[j - 1] ? 0 : 1)
+      );
+      diag = tmp;
+    }
+  }
+  return prev[b.length];
+}
+
+// Leia nimekirjast kõige lähem sarnane nimi (kaugus max 2, ja nimi
+// peab olema piisavalt pikk, et sarnasus midagi tähendaks).
+export function closestName(name, candidates) {
+  if (name.length < 4) return null;
+  let best = null;
+  for (const c of candidates) {
+    const d = editDistance(name, c);
+    if (d > 0 && d <= 2 && (!best || d < best.dist)) best = { name: c, dist: d };
+  }
+  return best;
+}

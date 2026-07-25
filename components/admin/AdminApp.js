@@ -7,20 +7,24 @@ import { useEffect, useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
 import { loadAdminData } from './adminShared';
 import AdminPerformances from './AdminPerformances';
+import AdminPlanner from './AdminPlanner';
 import AdminArtists from './AdminArtists';
 import AdminStages from './AdminStages';
 import AdminTags from './AdminTags';
 import AdminInfo from './AdminInfo';
 import AdminImport from './AdminImport';
+import AdminEmails from './AdminEmails';
 import AdminAdmins from './AdminAdmins';
 
 const TABS = [
+  { key: 'planner', label: '📅 Planeerija' },
   { key: 'perfs', label: 'Esinemised' },
   { key: 'artists', label: 'Esinejad' },
   { key: 'stages', label: 'Alad' },
   { key: 'tags', label: 'Tagid' },
   { key: 'info', label: 'Oluline info' },
   { key: 'import', label: '⇪ Import' },
+  { key: 'emails', label: 'Meilid' },
   { key: 'admins', label: 'Adminid', superOnly: true }
 ];
 
@@ -99,12 +103,14 @@ export default function AdminApp() {
         <div className="admin-note">Laen andmeid…</div>
       ) : (
         <main className="admin-main">
+          {tab === 'planner' && <AdminPlanner data={data} onChanged={refresh} />}
           {tab === 'perfs' && <AdminPerformances data={data} onChanged={refresh} />}
           {tab === 'artists' && <AdminArtists data={data} onChanged={refresh} />}
           {tab === 'stages' && <AdminStages data={data} onChanged={refresh} />}
           {tab === 'tags' && <AdminTags data={data} onChanged={refresh} />}
           {tab === 'info' && <AdminInfo data={data} onChanged={refresh} />}
           {tab === 'import' && <AdminImport data={data} onChanged={refresh} />}
+          {tab === 'emails' && <AdminEmails />}
           {tab === 'admins' && role === 'superadmin' && <AdminAdmins />}
         </main>
       )}

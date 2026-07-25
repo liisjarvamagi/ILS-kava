@@ -10,7 +10,7 @@
 // Pärast importi saab kõike edasi muuta tavalistes vormides.
 import { useMemo, useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
-import { parseTable, rowToObject, parseBool, splitList } from './csv';
+import { parseTable, rowToObject, parseBool, splitList, closestName } from './csv';
 import { timesToIso, slugify, revalidatePublic } from './adminShared';
 
 const PERF_TEMPLATE =
@@ -37,6 +37,9 @@ export default function AdminImport({ data, onChanged }) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(null);
   const [result, setResult] = useState(null);
+  // Trükiveakaitse: kasutaja kinnitatud asendused, nt
+  // { 'glenwasere': 'Glenwashere' } — CSV nimi → olemasolev esineja
+  const [renames, setRenames] = useState({});
 
   const stageByName = useMemo(() => {
     const m = new Map();
@@ -78,7 +81,9 @@ export default function AdminImport({ data, onChanged }) {
         if (!stage) errors.push(`tundmatu ala "${o.ala}"`);
         if (!/^\d{1,2}:\d{2}$/.test(o.algus)) errors.push('algus peab olema kujul 18:00');
         if (!/^\d{1,2}:\d{2}$/.test(o.lopp)) errors.push('lõpp peab olema kujul 20:00');
-        const artists = splitList(o.esinejad);
+        // rakenda kinnitatud trükiveaparandused
+        const artists = splitList(o.esinejad)
+          .map((n) => renames[n.toLowerCase()] || n);
         if (!artists.length && !(o.pealkiri_et || '').trim()) errors.push('vaja on esinejaid või pealkirja');
         let dup = false;
         if (!errors.length) {
@@ -88,9 +93,17 @@ export default function AdminImport({ data, onChanged }) {
           );
         }
         const newArtists = artists.filter((n) => !artistByName.has(n.toLowerCase()));
+        // Trükiveakahtlus: uus nimi, mis on mõne olemasolevaga
+        // 1–2 tähe kaugusel — tõenäoliselt kirjaviga
+        const suggestions = newArtists
+          .map((n) => {
+            const hit = closestName(n, data.artists.map((a) => a.name));
+            return hit ? { from: n, to: hit.name } : null;
+          })
+          .filter(Boolean);
         const tags = splitList(o.tagid);
         const newTags = tags.filter((n) => !tagByName.has(n.toLowerCase()));
-        return { line: i + 2, o, stage, artists, tags, newArtists, newTags, errors, dup };
+        return { line: i + 2, o, stage, artists, tags, newArtists, newTags, suggestions, errors, dup };
       });
       return { items };
     }
@@ -102,12 +115,20 @@ export default function AdminImport({ data, onChanged }) {
     const items = rows.map((r, i) => {
       const o = rowToObject(header, r);
       const errors = [];
-      if ((o.nimi || '').trim().length < 2) errors.push('nimi on puudu');
-      const existing = artistByName.get((o.nimi || '').trim().toLowerCase());
-      return { line: i + 2, o, existing, errors };
+      const nimi = renames[(o.nimi || '').trim().toLowerCase()] || (o.nimi || '').trim();
+      o.nimi = nimi;
+      if (nimi.length < 2) errors.push('nimi on puudu');
+      const existing = artistByName.get(nimi.toLowerCase());
+      const suggestions = !existing && !errors.length
+        ? (() => {
+            const hit = closestName(nimi, data.artists.map((a) => a.name));
+            return hit ? [{ from: nimi, to: hit.name }] : [];
+          })()
+        : [];
+      return { line: i + 2, o, existing, suggestions, errors };
     });
     return { items };
-  }, [text, mode, data, stageByName, artistByName, tagByName]);
+  }, [text, mode, data, stageByName, artistByName, tagByName, renames]);
 
   const okCount = preview?.items?.filter((it) => !it.errors.length).length || 0;
   const errCount = preview?.items?.filter((it) => it.errors.length).length || 0;
@@ -285,6 +306,17 @@ export default function AdminImport({ data, onChanged }) {
                     {it.errors.length > 0 && (
                       <div className="admin-row-sub">⚠️ {it.errors.join('; ')}</div>
                     )}
+                    {(it.suggestions || []).map((sg) => (
+                      <div key={sg.from} className="admin-row-sub admin-suggest-fix">
+                        🟡 „{sg.from}" — kas mõtlesid olemasolevat esinejat „{sg.to}"?
+                        <button
+                          className="admin-mini"
+                          onClick={() => setRenames((r) => ({ ...r, [sg.from.toLowerCase()]: sg.to }))}
+                        >
+                          Kasuta: {sg.to}
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}

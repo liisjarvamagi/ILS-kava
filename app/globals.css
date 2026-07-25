@@ -1365,3 +1365,96 @@ a.map-action { display: flex; align-items: center; justify-content: center; }
   object-fit: cover;
   border: 1px solid var(--border);
 }
+
+/* Admini massimuudatused */
+.admin-bulk {
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 10px 0;
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+.admin-rowcheck { width: 18px; height: 18px; accent-color: var(--accent); flex-shrink: 0; }
+
+/* ── Kava planeerija ── */
+.planner {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  max-height: 70vh;
+  background: var(--surface2);
+}
+.planner-canvas { position: relative; }
+.planner-hours { position: relative; height: 24px; }
+.planner-row {
+  display: flex;
+  border-top: 1px solid var(--border);
+}
+.planner-label {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  width: 120px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+}
+.planner-lane {
+  position: relative;
+  flex-shrink: 0;
+  cursor: copy;
+  background-image: linear-gradient(to right, var(--border) 1px, transparent 1px);
+  background-repeat: repeat-x;
+}
+.planner-block {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  border: 1.5px solid;
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 4px 8px;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.planner-block.moving { cursor: grabbing; z-index: 8; opacity: 0.9; box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
+.planner-block.clash { outline: 2.5px solid #e05555; }
+.planner-block.draftblock { opacity: 0.55; border-style: dashed; }
+.planner-block-time { font-size: 10px; color: var(--muted); white-space: nowrap; }
+.planner-block-name {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.planner-resize {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 14px;
+  cursor: ew-resize;
+  touch-action: none;
+}
+.planner-resize::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  top: 30%;
+  bottom: 30%;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--muted);
+}
