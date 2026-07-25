@@ -1,32 +1,62 @@
 'use client';
-// Sisselogimise vaade Brella loogikaga: kõigepealt sisestad e-posti,
-// konto olemasolu kontrollitakse järgmisel sammul; alternatiiv on
-// Google. See on praegu valmis KUJUNDUS — päris sisselogimine
-// ühendatakse ehitusplaani 5. tükis (Supabase Auth), siis hakkavad
-// need nupud tööle. authReady tuleb serverist ja ütleb, kas
-// andmebaas on juba seadistatud.
+// Sisselogimise vaade Brella loogikaga: e-post ees, Google
+// alternatiivina. E-postiga saadame sisselogimislingi meilile
+// (magic link) — see katab nii uue konto loomise kui olemasolevaga
+// sisselogimise, paroole pole vaja meeles pidada ega lekitada.
+// Kui Supabase pole veel seadistatud (authReady=false), näitavad
+// nupud viisakat teadet.
 import { useState } from 'react';
 import { t } from '../lib/i18n';
+import { supabaseBrowser } from '../lib/supabaseClient';
 
 export default function SignIn({ locale, authReady }) {
   const tr = t(locale);
   const [email, setEmail] = useState('');
   const [error, setError] = useState(null);
   const [showSoon, setShowSoon] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  function submitEmail(e) {
+  const redirectTo = () =>
+    `${window.location.origin}/${locale}/profiil`;
+
+  async function submitEmail(e) {
     e.preventDefault();
-    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    const clean = email.trim().toLowerCase();
+    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean);
     if (!ok) { setError(tr.signin_invalid_email); return; }
     setError(null);
-    // 5. tükk: siin kontrollitakse Supabase'ist konto olemasolu ja
-    // saadetakse kas parooliväli või magic link. Praegu näitame teadet.
-    setShowSoon(true);
+    const supabase = authReady ? supabaseBrowser() : null;
+    if (!supabase) { setShowSoon(true); return; }
+    setBusy(true);
+    const { error: err } = await supabase.auth.signInWithOtp({
+      email: clean,
+      options: { emailRedirectTo: redirectTo() }
+    });
+    setBusy(false);
+    if (err) { setError(tr.signin_failed); return; }
+    setEmailSent(true);
   }
 
-  function googleSignIn() {
-    // 5. tükk: supabase.auth.signInWithOAuth({ provider: 'google' })
-    setShowSoon(true);
+  async function googleSignIn() {
+    const supabase = authReady ? supabaseBrowser() : null;
+    if (!supabase) { setShowSoon(true); return; }
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: redirectTo() }
+    });
+  }
+
+  if (emailSent) {
+    return (
+      <div className="signin">
+        <h2 className="signin-title">{tr.signin_check_inbox}</h2>
+        <p className="signin-intro">{tr.signin_check_inbox_body}</p>
+        <button className="btn-secondary" onClick={() => setEmailSent(false)}>
+          {tr.back}
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -48,7 +78,9 @@ export default function SignIn({ locale, authReady }) {
         />
         <p className="signin-hint">{tr.signin_email_hint}</p>
         {error && <p className="signin-error" role="alert">{error}</p>}
-        <button type="submit" className="btn-primary">{tr.signin_continue_email}</button>
+        <button type="submit" className="btn-primary" disabled={busy}>
+          {busy ? '…' : tr.signin_continue_email}
+        </button>
       </form>
 
       <div className="signin-or">

@@ -993,3 +993,51 @@ a.signin-sheet-btn { display: flex; align-items: center; justify-content: center
   min-height: 44px;
   margin-top: 4px;
 }
+
+/* ── Profiil (sisselogitud vaade) ── */
+.profile-synced { margin: 0 0 16px; }
+.profile-synced p { color: var(--text); }
+.profile-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: left;
+  margin-bottom: 12px;
+}
+.profile-toggle-title { display: block; font-size: 14px; font-weight: 700; }
+.profile-toggle-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+.switch {
+  width: 46px;
+  height: 27px;
+  border-radius: 999px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+.switch-dot {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.profile-toggle.on .switch { background: color-mix(in srgb, var(--accent) 45%, var(--surface3)); }
+.profile-toggle.on .switch-dot { transform: translateX(19px); background: var(--accent); }
+.profile-signout { margin-top: 6px; }

@@ -35,8 +35,10 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
   (pilt, nimi, loo pealkiri, paus, stopp)
 - Esimesel lemmiku märkimisel avaneb sisselogimiskutse (Google,
   e-post, "Äkki hiljem") — päris sisselogimine ühendatakse 5. tükis
-- Profiil: sisselogimise kujundus Brella loogikaga (e-post ees,
-  kontokontroll järgmisel sammul, Google) — ühendatakse 5. tükis
+- Sisselogimine (5. tükk): Google või link meilile (parooli pole),
+  profiililehel e-post, hommikukirja linnuke ja väljalogimine;
+  sisselogimisel liidetakse telefoni kava kontoga (user_schedule),
+  duplikaate ei teki ja RLS tagab, et igaüks näeb ainult enda kava
 - Keeled ET ja EN (/et ja /en)
 - Kaart on kohatäide — tuleb 7. tükis
 
@@ -54,7 +56,26 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
    - `supabase/migrations/0003_esineja_lood.sql` (esinejate lood:
      mp3 faili või Spotify/SoundCloudi/YouTube'i lingi veerud)
    - `supabase/seed.sql` (2026 päris kava: 17 ala, 171 esinemist)
+   - `supabase/seed2_esinejad.sql` (teeb pealkirjadest 160 päris
+     esinejat: muusikaaladel nimed, töötubadel juhendajad; TBA jms
+     jäävad pealkirjadeks. Pildid, biod ja lood lisad Table Editoris
+     artists tabelisse, kuni adminipaneel valmib)
 5. `npm run dev` → ava http://localhost:3000
+
+## Sisselogimise seadistus Supabase'is (5. tükk)
+
+1. Authentication → URL Configuration: Site URL pane oma Verceli
+   aadress (nt https://ils-kava.vercel.app) ja Redirect URLs alla
+   lisa `http://localhost:3000/**` ja `https://ils-kava.vercel.app/**`
+2. Link meilile töötab kohe (Email provider on vaikimisi sees).
+   NB! Supabase'i sisseehitatud meilisaatja on piiratud mahuga —
+   testimiseks piisab, päris kasutajate jaoks ühendame 8. tükis
+   Resendi SMTP.
+3. Google (valikuline, meililink töötab ka ilma): Authentication →
+   Providers → Google. Vaja on Google Cloud OAuth klienti
+   (console.cloud.google.com → Credentials → OAuth client ID,
+   redirect aadressiks Supabase'i näidatud .../auth/v1/callback).
+   Client ID ja Secret kleebi Supabase'i Google provideri alla.
 
 ## GitHubi ja Vercelisse
 
@@ -73,6 +94,5 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
 
 ## Järgmised tükid
 
-Vaata i-land-sound-ehitusplaan.md — järgmisena tükk 0/5: Supabase
-keskkondade seadistus ja päris sisselogimine (nupud on kujunduses
-valmis ja ootavad ühendamist).
+Vaata i-land-sound-ehitusplaan.md — järgmisena tükk 6 (adminipaneel),
+siis tükk 7 (kaart) ja tükk 8 (hommikukiri).
