@@ -67,6 +67,43 @@ export default function AdminStages({ data, onChanged }) {
     if (!form.id) setForm(EMPTY);
   }
 
+  // Ala saab kustutada ainult siis, kui ühelgi esinemisel (ka peidetul
+  // ja vanade aastate omal) pole seda ala küljes. Muidu ütleme, mitu
+  // esinemist ees on — andmebaas ei lubaks niikuinii (on delete restrict),
+  // aga nii saab admin selge jutu, mitte krüptilise veateate.
+  async function remove() {
+    const supabase = supabaseBrowser();
+    setBusy(true); setMsg(null);
+    const { count, error: cntErr } = await supabase
+      .from('performances')
+      .select('id', { count: 'exact', head: true })
+      .eq('stage_id', form.id);
+    if (cntErr) {
+      setBusy(false);
+      setMsg('Kontroll ebaõnnestus: ' + cntErr.message);
+      return;
+    }
+    if (count > 0) {
+      setBusy(false);
+      setMsg(`Sellel alal on ${count} esinemist (kaasa arvatud peidetud ja ` +
+        `vanade aastate omad), seega kustutada ei saa. Tõsta esinemised ` +
+        `Esinemised sakis teisele alale või kustuta need, siis saab ala ` +
+        `kustutada. Ajaloo hoidmiseks jäta ala lihtsalt peidetuks.`);
+      return;
+    }
+    if (!window.confirm(`Kustutan ala "${form.name_et}" jäädavalt?`)) {
+      setBusy(false);
+      return;
+    }
+    const { error } = await supabase.from('stages').delete().eq('id', form.id);
+    setBusy(false);
+    if (error) { setMsg('Kustutamine ebaõnnestus: ' + error.message); return; }
+    setForm(EMPTY);
+    await revalidatePublic();
+    await onChanged();
+    setMsg('Ala kustutatud ✅');
+  }
+
   return (
     <>
       <section className="admin-card">
@@ -146,7 +183,12 @@ export default function AdminStages({ data, onChanged }) {
             {busy ? '…' : 'Salvesta'}
           </button>
           {form.id && (
-            <button className="btn-secondary" onClick={() => setForm(EMPTY)}>Tühista muutmine</button>
+            <>
+              <button className="btn-secondary" disabled={busy} onClick={remove}>
+                🗑 Kustuta ala
+              </button>
+              <button className="btn-secondary" onClick={() => setForm(EMPTY)}>Tühista muutmine</button>
+            </>
           )}
         </div>
       </section>
