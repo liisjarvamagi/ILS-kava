@@ -47,8 +47,14 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
   salvestus värskendab avalikku kava kohe; Import sakk laseb
   esinemised ja esinejate andmed sisse tuua tabelina (kleebi
   Excelist/Sheetsist või .csv fail, eelvaade veakontrolliga)
+- Kaart (7. tükk): festivali, Orissaare, toiduala ja glämpingu
+  kaardid vahelehtedena (pildid on äpi enda failid public/kaardid
+  kaustas), festivalikaardil alade punktid — puude avab nime ja
+  programmi lingi. Sündmuse ja ala lehel on Google'i kaardi asemel
+  festivalikaardi väljavõte ala markeriga; Google Mapsi juhiste link
+  jääb autoga tulijale alles. Ala kohta kaardil nihutad adminis
+  (Alad → klõpsa kaardil)
 - Keeled ET ja EN (/et ja /en); admin on eestikeelne
-- Kaart on kohatäide — tuleb 7. tükis
 
 ## Käivitamine oma arvutis
 
@@ -68,6 +74,8 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
    - `supabase/migrations/0005_admini_funktsioonid.sql` (adminipaneeli
      funktsioonid; faili lõpus on juhis ESIMESE superadmini
      määramiseks — tee see kohe ära)
+   - `supabase/migrations/0006_kaardipunktid.sql` (alade stardikohad
+     festivalikaardil; täpsemaks nihutad adminis)
    - `supabase/seed.sql` (2026 päris kava: 17 ala, 171 esinemist)
    - `supabase/seed2_esinejad.sql` (teeb pealkirjadest 160 päris
      esinejat: muusikaaladel nimed, töötubadel juhendajad; TBA jms
@@ -107,5 +115,7 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
 
 ## Järgmised tükid
 
-Vaata i-land-sound-ehitusplaan.md — järgmisena tükk 7 (kaart) ja
-tükk 8 (hommikukiri).
+Vaata i-land-sound-ehitusplaan.md — järgmisena tükk 8 (hommikukiri)
+ja enne avalikustamist tester + turvaaudit. Fail
+components/LocationBlock.js pole enam kasutusel ja selle võib
+kustutada.

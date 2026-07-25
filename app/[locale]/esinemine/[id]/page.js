@@ -4,13 +4,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
-  loadSchedule, findPerformance, isValidId, stageCoords,
+  loadSchedule, findPerformance, isValidId, stageCoords, stageMapPoint,
   perfTitle, perfDescr, perfArtists, perfTags, fmtTime, dayLabel
 } from '../../../../lib/schedule';
 import { t } from '../../../../lib/i18n';
 import BookmarkButton from '../../../../components/BookmarkButton';
 import ReadMore from '../../../../components/ReadMore';
-import LocationBlock from '../../../../components/LocationBlock';
+import StageMap from '../../../../components/StageMap';
 import InfoCards from '../../../../components/InfoCards';
 
 export const revalidate = 60;
@@ -72,7 +72,12 @@ export default async function PerformancePage({ params }) {
 
       {descr && <ReadMore text={descr} locale={locale} />}
 
-      <LocationBlock coords={stageCoords(stage)} name={stageName} locale={locale} />
+      <StageMap
+        point={stageMapPoint(stage)}
+        coords={stageCoords(stage)}
+        color={stage?.color}
+        locale={locale}
+      />
 
       {artists.length > 0 && (
         <>

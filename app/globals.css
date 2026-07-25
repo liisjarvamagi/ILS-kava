@@ -1229,3 +1229,130 @@ a.profile-admin-link { display: flex; align-items: center; justify-content: cent
 .admin-row-err { border-color: #e07575; }
 .admin-file { cursor: pointer; }
 label.admin-file { display: flex; align-items: center; justify-content: center; width: auto; padding: 0 18px; }
+
+/* ── Kaardivaade vahelehtedega ── */
+.map-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 12px 16px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.map-tabs::-webkit-scrollbar { display: none; }
+.map-viewport {
+  overflow: auto;
+  margin: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface2);
+  max-height: 70vh;
+  -webkit-overflow-scrolling: touch;
+}
+.map-inner { position: relative; width: 100%; }
+.map-viewport.zoomed .map-inner { width: 220%; }
+.map-img { width: 100%; display: block; user-select: none; }
+.map-dot {
+  position: absolute;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 2.5px solid #fff;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+  cursor: pointer;
+}
+.map-dot.open { outline: 3px solid var(--accent); }
+.map-popup {
+  position: absolute;
+  transform: translate(-50%, -140%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 12px;
+  white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  z-index: 5;
+}
+.map-popup-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.map-popup-link { font-size: 12px; font-weight: 700; color: var(--accent); }
+.map-actions { display: flex; gap: 8px; padding: 10px 16px 20px; }
+.map-action { flex: 1; min-height: 46px; font-size: 13px; }
+a.map-action { display: flex; align-items: center; justify-content: center; }
+
+/* ── Kaardiväljavõte sündmuse lehel ── */
+.stage-map {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #59c6e2; /* kaardi merevärv laadimise ajaks */
+}
+.stage-map-img {
+  position: absolute;
+  max-width: none;
+  user-select: none;
+}
+.stage-map-marker {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 6px rgba(255,255,255,0.25), 0 2px 10px rgba(0,0,0,0.4);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .stage-map-marker { animation: pulse 1.6s ease-out infinite; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.45), 0 2px 10px rgba(0,0,0,0.4); }
+    100% { box-shadow: 0 0 0 14px rgba(255,255,255,0), 0 2px 10px rgba(0,0,0,0.4); }
+  }
+}
+.stage-map-more {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.map-directions-small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  min-height: 40px;
+}
+
+/* ── Admini kaardivalija ── */
+.admin-mappick {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: crosshair;
+  margin-bottom: 6px;
+}
+.admin-mappick img { width: 100%; display: block; }
+.admin-mappick-dot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid #fff;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  pointer-events: none;
+}

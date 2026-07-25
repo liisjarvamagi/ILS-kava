@@ -7,7 +7,8 @@ import { slugify, revalidatePublic } from './adminShared';
 
 const EMPTY = {
   id: null, slug: '', name_et: '', name_en: '', descr_et: '', descr_en: '',
-  color: '#7aab9a', sort_order: 0, lat: '', lng: '', is_active: true
+  color: '#7aab9a', sort_order: 0, lat: '', lng: '', map_x: '', map_y: '',
+  is_active: true
 };
 
 export default function AdminStages({ data, onChanged }) {
@@ -22,7 +23,8 @@ export default function AdminStages({ data, onChanged }) {
       id: s.id, slug: s.slug || '', name_et: s.name_et || '', name_en: s.name_en || '',
       descr_et: s.descr_et || '', descr_en: s.descr_en || '',
       color: s.color || '#7aab9a', sort_order: s.sort_order ?? 0,
-      lat: s.lat ?? '', lng: s.lng ?? '', is_active: s.is_active
+      lat: s.lat ?? '', lng: s.lng ?? '',
+      map_x: s.map_x ?? '', map_y: s.map_y ?? '', is_active: s.is_active
     });
     setMsg(null);
     window.scrollTo({ top: 0 });
@@ -49,6 +51,8 @@ export default function AdminStages({ data, onChanged }) {
       color: form.color,
       sort_order: Number(form.sort_order) || 0,
       lat, lng,
+      map_x: form.map_x === '' ? null : Number(form.map_x),
+      map_y: form.map_y === '' ? null : Number(form.map_y),
       is_active: form.is_active
     };
     const q = form.id
@@ -100,6 +104,36 @@ export default function AdminStages({ data, onChanged }) {
             <input value={form.lng} onChange={(e) => set({ lng: e.target.value })} />
           </label>
         </div>
+        <label className="admin-label">Koht festivalikaardil — klõpsa kaardil
+          õigele kohale, punkt liigub sinna. Seda kohta näidatakse Kaardi
+          vaates ja sündmuse lehe kaardiväljavõttel.</label>
+        <div
+          className="admin-mappick"
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            set({
+              map_x: (((e.clientX - r.left) / r.width) * 100).toFixed(1),
+              map_y: (((e.clientY - r.top) / r.height) * 100).toFixed(1)
+            });
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/kaardid/festival.png" alt="Festivali kaart" draggable={false} />
+          {form.map_x !== '' && form.map_y !== '' && (
+            <span
+              className="admin-mappick-dot"
+              style={{ left: `${form.map_x}%`, top: `${form.map_y}%`, background: form.color }}
+            />
+          )}
+        </div>
+        {form.map_x !== '' && (
+          <div className="admin-actions">
+            <button className="admin-mini" onClick={() => set({ map_x: '', map_y: '' })}>
+              Eemalda kaardipunkt
+            </button>
+          </div>
+        )}
+
         <label className="admin-check">
           <input type="checkbox" checked={form.is_active}
             onChange={(e) => set({ is_active: e.target.checked })} />

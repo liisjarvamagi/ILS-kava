@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
-  loadSchedule, findStage, isValidSlug, stageCoords, festivalDays, dayLabel
+  loadSchedule, findStage, isValidSlug, stageCoords, stageMapPoint, festivalDays, dayLabel
 } from '../../../../lib/schedule';
 import { t } from '../../../../lib/i18n';
 import ArtistSessions from '../../../../components/ArtistSessions';
-import LocationBlock from '../../../../components/LocationBlock';
+import StageMap from '../../../../components/StageMap';
 
 export const revalidate = 60;
 
@@ -47,7 +47,12 @@ export default async function StagePage({ params }) {
 
       {descr && <div className="detail-descr"><p>{descr}</p></div>}
 
-      <LocationBlock coords={stageCoords(stage)} name={name} locale={locale} />
+      <StageMap
+        point={stageMapPoint(stage)}
+        coords={stageCoords(stage)}
+        color={stage.color}
+        locale={locale}
+      />
 
       {days.map((d) => (
         <section key={d}>
