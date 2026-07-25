@@ -7,7 +7,8 @@
 import { useEffect, useState } from 'react';
 import { t } from '../lib/i18n';
 import { supabaseBrowser } from '../lib/supabaseClient';
-import { mergeScheduleWithAccount } from '../lib/mySchedule';
+import { mergeScheduleWithAccount, markNudgeSeen } from '../lib/mySchedule';
+import { mergeFavsWithAccount } from '../lib/favArtists';
 import SignIn from './SignIn';
 
 export default function ProfileArea({ locale, authReady }) {
@@ -28,9 +29,13 @@ export default function ProfileArea({ locale, authReady }) {
       setUser(session?.user ?? null);
       setChecking(false);
       if (session?.user) {
-        // kava kontosse + kontost telefoni (duplikaate ei teki)
+        // sisselogitud kasutajale "logi sisse" teateid rohkem ei näidata
+        markNudgeSeen();
+        localStorage.setItem('ils_signin_asked_v1', '1');
+        // kava ja lemmikud kontosse + kontost telefoni (duplikaate ei teki)
         const count = await mergeScheduleWithAccount();
         if (count !== null) setSavedCount(count);
+        await mergeFavsWithAccount();
         // hommikukirja eelistus profiilist
         const { data } = await supabase.from('profiles')
           .select('wants_daily_email')

@@ -55,6 +55,8 @@ Ehitusjärjekord on failis i-land-sound-ehitusplaan.md.
      muuda õigeks)
    - `supabase/migrations/0003_esineja_lood.sql` (esinejate lood:
      mp3 faili või Spotify/SoundCloudi/YouTube'i lingi veerud)
+   - `supabase/migrations/0004_lemmikesinejad.sql` (lemmikesinejad
+     kontosse: südamed liiguvad seadmete vahel kaasa)
    - `supabase/seed.sql` (2026 päris kava: 17 ala, 171 esinemist)
    - `supabase/seed2_esinejad.sql` (teeb pealkirjadest 160 päris
      esinejat: muusikaaladel nimed, töötubadel juhendajad; TBA jms

@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { t } from '../lib/i18n';
 import { perfArtists, festivalDays, dayTitle } from '../lib/schedule';
 import { getFavArtists, toggleFavArtist } from '../lib/favArtists';
+import { hasLocalSession } from '../lib/supabaseClient';
 import SignInSheet from './SignInSheet';
 
 // Esimesel lemmiku märkimisel kutsume sisse logima (nagu FEST äpis).
@@ -55,7 +56,8 @@ export default function ArtistDirectory({ data, locale }) {
     e.preventDefault();
     // Esimesel korral näitame sisselogimiskutset; süda läheb kirja
     // alles pärast valikut ("Äkki hiljem" või sisselogimine).
-    if (!favs.includes(id) && !localStorage.getItem(SIGNIN_SEEN_KEY)) {
+    // Sisselogitud kasutajat ei tülitata.
+    if (!favs.includes(id) && !hasLocalSession() && !localStorage.getItem(SIGNIN_SEEN_KEY)) {
       setPendingFav(id);
       return;
     }
