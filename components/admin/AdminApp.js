@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
 import { loadAdminData } from './adminShared';
+import { isDirty, clearDirty, DIRTY_MSG } from './dirty';
 import AdminPerformances from './AdminPerformances';
 import AdminPlanner from './AdminPlanner';
 import AdminArtists from './AdminArtists';
@@ -36,6 +37,23 @@ export default function AdminApp() {
 
   async function refresh() {
     setData(await loadAdminData());
+  }
+
+  // Brauseri hoiatus enne lehelt lahkumist (sulgemine, värskendus,
+  // teisele aadressile minek), kui vormis on salvestamata muudatusi
+  useEffect(() => {
+    function beforeUnload(e) {
+      if (isDirty()) { e.preventDefault(); e.returnValue = ''; }
+    }
+    window.addEventListener('beforeunload', beforeUnload);
+    return () => window.removeEventListener('beforeunload', beforeUnload);
+  }, []);
+
+  // Saki vahetus salvestamata muudatustega küsib enne üle
+  function switchTab(key) {
+    if (key !== tab && isDirty() && !window.confirm(DIRTY_MSG)) return;
+    clearDirty();
+    setTab(key);
   }
 
   useEffect(() => {
@@ -92,7 +110,7 @@ export default function AdminApp() {
           <button
             key={t.key}
             className={tab === t.key ? 'active' : ''}
-            onClick={() => setTab(t.key)}
+            onClick={() => switchTab(t.key)}
           >
             {t.label}
           </button>

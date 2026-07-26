@@ -6,7 +6,7 @@
 // võtit kasutatakse AINULT siin serveris.
 import { NextResponse } from 'next/server';
 import {
-  serviceClient, sendDailyTo, todayTallinn, hourTallinn, dueNow
+  serviceClient, sendDailyTo, todayTallinn, hourTallinn, dueNow, publicAppUrl
 } from '../../../lib/emailDaily';
 
 export const maxDuration = 60; // sekundit — kirju võib olla palju
@@ -25,7 +25,7 @@ export async function GET(request) {
 
   const day = todayTallinn();
   const nowHour = hourTallinn();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = publicAppUrl(new URL(request.url).origin);
 
   // Kas täna on üldse festivalipäev? Kui kavas pole ühtegi tänast
   // kirjet, ei saada kellelegi midagi.

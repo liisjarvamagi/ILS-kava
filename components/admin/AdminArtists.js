@@ -5,6 +5,8 @@
 import { useMemo, useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
 import { slugify, revalidatePublic, uploadToStorage, guardedUpdate, CONFLICT_MSG } from './adminShared';
+import TolkeNupp from './TolkeNupp';
+import { markDirty, clearDirty, isDirty, DIRTY_MSG } from './dirty';
 
 const LINK_KEYS = ['instagram', 'facebook', 'spotify', 'soundcloud', 'youtube', 'website'];
 const EMPTY = {
@@ -21,8 +23,9 @@ export default function AdminArtists({ data, onChanged }) {
   const [msg, setMsg] = useState(null);
   const [mergeTarget, setMergeTarget] = useState('');
 
-  function set(patch) { setForm((f) => ({ ...f, ...patch })); }
+  function set(patch) { markDirty(); setForm((f) => ({ ...f, ...patch })); }
   function setLink(key, value) {
+    markDirty();
     setForm((f) => ({ ...f, links: { ...f.links, [key]: value } }));
   }
 
@@ -57,6 +60,7 @@ export default function AdminArtists({ data, onChanged }) {
   }
 
   function edit(a) {
+    if (isDirty() && !window.confirm(DIRTY_MSG)) return;
     setForm({
       id: a.id, name: a.name || '', slug: a.slug || '', country: a.country || '',
       image_url: a.image_url || '', bio_et: a.bio_et || '', bio_en: a.bio_en || '',
@@ -65,6 +69,7 @@ export default function AdminArtists({ data, onChanged }) {
       links: a.links && typeof a.links === 'object' ? a.links : {},
       updated_at: a.updated_at || null // üle kirjutamise kaitse
     });
+    clearDirty(); // avatud kirje on nüüd puhas lähtepunkt
     setMsg(null);
     window.scrollTo({ top: 0 });
   }
@@ -109,6 +114,7 @@ export default function AdminArtists({ data, onChanged }) {
     if (error) { setMsg('Salvestus ebaõnnestus: ' + error); return; }
     await revalidatePublic();
     await onChanged();
+    clearDirty();
     setMsg('Salvestatud ✅');
     if (!form.id) setForm(EMPTY);
   }
@@ -212,9 +218,11 @@ export default function AdminArtists({ data, onChanged }) {
         <div className="admin-grid">
           <label>Bio (ET)
             <textarea rows={4} value={form.bio_et} onChange={(e) => set({ bio_et: e.target.value })} />
+            <TolkeNupp text={form.bio_en} from="en" onDone={(t) => set({ bio_et: t })} />
           </label>
           <label>Bio (EN)
             <textarea rows={4} value={form.bio_en} onChange={(e) => set({ bio_en: e.target.value })} />
+            <TolkeNupp text={form.bio_et} from="et" onDone={(t) => set({ bio_en: t })} />
           </label>
         </div>
         {form.bio_et.trim() && !form.bio_en.trim() && (
@@ -260,7 +268,7 @@ export default function AdminArtists({ data, onChanged }) {
             {busy ? '…' : 'Salvesta'}
           </button>
           {form.id && (
-            <button className="btn-secondary" onClick={() => setForm(EMPTY)}>
+            <button className="btn-secondary" onClick={() => { clearDirty(); setForm(EMPTY); }}>
               Tühista muutmine
             </button>
           )}

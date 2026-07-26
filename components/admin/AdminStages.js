@@ -4,6 +4,8 @@
 import { useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
 import { slugify, revalidatePublic, guardedUpdate, CONFLICT_MSG } from './adminShared';
+import TolkeNupp from './TolkeNupp';
+import { markDirty, clearDirty, isDirty, DIRTY_MSG } from './dirty';
 
 const EMPTY = {
   id: null, slug: '', name_et: '', name_en: '', descr_et: '', descr_en: '',
@@ -16,9 +18,10 @@ export default function AdminStages({ data, onChanged }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
 
-  function set(patch) { setForm((f) => ({ ...f, ...patch })); }
+  function set(patch) { markDirty(); setForm((f) => ({ ...f, ...patch })); }
 
   function edit(s) {
+    if (isDirty() && !window.confirm(DIRTY_MSG)) return;
     setForm({
       id: s.id, slug: s.slug || '', name_et: s.name_et || '', name_en: s.name_en || '',
       descr_et: s.descr_et || '', descr_en: s.descr_en || '',
@@ -27,6 +30,7 @@ export default function AdminStages({ data, onChanged }) {
       map_x: s.map_x ?? '', map_y: s.map_y ?? '', is_active: s.is_active,
       updated_at: s.updated_at || null // üle kirjutamise kaitse
     });
+    clearDirty(); // avatud kirje on nüüd puhas lähtepunkt
     setMsg(null);
     window.scrollTo({ top: 0 });
   }
@@ -75,6 +79,7 @@ export default function AdminStages({ data, onChanged }) {
     if (errText) { setMsg('Salvestus ebaõnnestus: ' + errText); return; }
     await revalidatePublic();
     await onChanged();
+    clearDirty();
     setMsg('Salvestatud ✅');
     if (!form.id) setForm(EMPTY);
   }
@@ -110,6 +115,7 @@ export default function AdminStages({ data, onChanged }) {
     const { error } = await supabase.from('stages').delete().eq('id', form.id);
     setBusy(false);
     if (error) { setMsg('Kustutamine ebaõnnestus: ' + error.message); return; }
+    clearDirty();
     setForm(EMPTY);
     await revalidatePublic();
     await onChanged();
@@ -138,9 +144,11 @@ export default function AdminStages({ data, onChanged }) {
         <div className="admin-grid">
           <label>Kirjeldus (ET)
             <textarea rows={3} value={form.descr_et} onChange={(e) => set({ descr_et: e.target.value })} />
+            <TolkeNupp text={form.descr_en} from="en" onDone={(t) => set({ descr_et: t })} />
           </label>
           <label>Kirjeldus (EN)
             <textarea rows={3} value={form.descr_en} onChange={(e) => set({ descr_en: e.target.value })} />
+            <TolkeNupp text={form.descr_et} from="et" onDone={(t) => set({ descr_en: t })} />
           </label>
         </div>
         <label className="admin-label">GPS-koordinaadid (kaart ja "Ava juhised" nupp).
@@ -199,7 +207,7 @@ export default function AdminStages({ data, onChanged }) {
               <button className="btn-secondary" disabled={busy} onClick={remove}>
                 🗑 Kustuta ala
               </button>
-              <button className="btn-secondary" onClick={() => setForm(EMPTY)}>Tühista muutmine</button>
+              <button className="btn-secondary" onClick={() => { clearDirty(); setForm(EMPTY); }}>Tühista muutmine</button>
             </>
           )}
         </div>

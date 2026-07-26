@@ -5,6 +5,8 @@
 // "Saada testkiri" saadab kirja kohe Sinu enda e-postile.
 import { useEffect, useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
+import TolkeNupp from './TolkeNupp';
+import { markDirty, clearDirty } from './dirty';
 
 export default function AdminEmails() {
   const [tpl, setTpl] = useState(null);
@@ -21,7 +23,7 @@ export default function AdminEmails() {
     })();
   }, []);
 
-  function set(patch) { setTpl((t) => ({ ...t, ...patch })); }
+  function set(patch) { markDirty(); setTpl((t) => ({ ...t, ...patch })); }
 
   async function save() {
     if (!tpl.body_et.includes('{{loobu_link}}') || !tpl.body_en.includes('{{loobu_link}}')) {
@@ -47,6 +49,7 @@ export default function AdminEmails() {
       return;
     }
     setTpl((t) => ({ ...t, updated_at: data[0].updated_at }));
+    clearDirty();
     setMsg('Salvestatud ✅');
   }
 
@@ -116,9 +119,11 @@ export default function AdminEmails() {
       <div className="admin-grid">
         <label>Sisu (ET, HTML)
           <textarea rows={9} value={tpl.body_et} onChange={(e) => set({ body_et: e.target.value })} />
+          <TolkeNupp text={tpl.body_en} from="en" onDone={(t) => set({ body_et: t })} />
         </label>
         <label>Sisu (EN, HTML)
           <textarea rows={9} value={tpl.body_en} onChange={(e) => set({ body_en: e.target.value })} />
+          <TolkeNupp text={tpl.body_et} from="et" onDone={(t) => set({ body_en: t })} />
         </label>
       </div>
 

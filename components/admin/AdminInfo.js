@@ -4,6 +4,8 @@
 import { useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
 import { revalidatePublic, guardedUpdate, CONFLICT_MSG } from './adminShared';
+import TolkeNupp from './TolkeNupp';
+import { markDirty, clearDirty, isDirty, DIRTY_MSG } from './dirty';
 
 const EMPTY = {
   id: null, icon: 'ℹ️', title_et: '', title_en: '',
@@ -15,9 +17,10 @@ export default function AdminInfo({ data, onChanged }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
 
-  function set(patch) { setForm((f) => ({ ...f, ...patch })); }
+  function set(patch) { markDirty(); setForm((f) => ({ ...f, ...patch })); }
 
   function edit(row) {
+    if (isDirty() && !window.confirm(DIRTY_MSG)) return;
     setForm({
       id: row.id, icon: row.icon || 'ℹ️',
       title_et: row.title_et || '', title_en: row.title_en || '',
@@ -25,6 +28,7 @@ export default function AdminInfo({ data, onChanged }) {
       sort_order: row.sort_order ?? 0, is_active: row.is_active ?? true,
       updated_at: row.updated_at || null // üle kirjutamise kaitse
     });
+    clearDirty(); // avatud kirje on nüüd puhas lähtepunkt
     setMsg(null);
     window.scrollTo({ top: 0 });
   }
@@ -63,6 +67,7 @@ export default function AdminInfo({ data, onChanged }) {
     if (errText) { setMsg('Salvestus ebaõnnestus: ' + errText); return; }
     await revalidatePublic();
     await onChanged();
+    clearDirty();
     setMsg('Salvestatud ✅');
     if (!form.id) setForm(EMPTY);
   }
@@ -99,9 +104,11 @@ export default function AdminInfo({ data, onChanged }) {
         <div className="admin-grid">
           <label>Sisu (ET)
             <textarea rows={3} value={form.body_et} onChange={(e) => set({ body_et: e.target.value })} />
+            <TolkeNupp text={form.body_en} from="en" onDone={(t) => set({ body_et: t })} />
           </label>
           <label>Sisu (EN)
             <textarea rows={3} value={form.body_en} onChange={(e) => set({ body_en: e.target.value })} />
+            <TolkeNupp text={form.body_et} from="et" onDone={(t) => set({ body_en: t })} />
           </label>
         </div>
         <label className="admin-check">
@@ -115,7 +122,7 @@ export default function AdminInfo({ data, onChanged }) {
             {busy ? '…' : 'Salvesta'}
           </button>
           {form.id && (
-            <button className="btn-secondary" onClick={() => setForm(EMPTY)}>Tühista muutmine</button>
+            <button className="btn-secondary" onClick={() => { clearDirty(); setForm(EMPTY); }}>Tühista muutmine</button>
           )}
         </div>
       </section>

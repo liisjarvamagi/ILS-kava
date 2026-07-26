@@ -9,6 +9,8 @@
 import { useMemo, useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
 import { isoToParts, timesToIso, slugify, revalidatePublic, guardedUpdate, CONFLICT_MSG } from './adminShared';
+import TolkeNupp from './TolkeNupp';
+import { markDirty, clearDirty, isDirty, DIRTY_MSG } from './dirty';
 
 const EMPTY = {
   id: null, stage_id: '', festival_day: '2026-07-16',
@@ -39,9 +41,10 @@ export default function AdminPerformances({ data, onChanged }) {
     [data]
   );
 
-  function set(patch) { setForm((f) => ({ ...f, ...patch })); }
+  function set(patch) { markDirty(); setForm((f) => ({ ...f, ...patch })); }
 
   function edit(p) {
+    if (isDirty() && !window.confirm(DIRTY_MSG)) return;
     const s = isoToParts(p.start_at);
     const e = isoToParts(p.end_at);
     setForm({
@@ -58,11 +61,13 @@ export default function AdminPerformances({ data, onChanged }) {
         .map((pa) => pa.artist_id)
     );
     setTagIds((p.performance_tags || []).map((pt) => pt.tag_id));
+    clearDirty(); // avatud kirje on nüüd puhas lähtepunkt
     setMsg(null);
     window.scrollTo({ top: 0 });
   }
 
   function clearForm(keepContext = true) {
+    clearDirty();
     setForm((f) => ({
       ...EMPTY,
       stage_id: keepContext ? f.stage_id : (data.stages[0]?.id || ''),
@@ -148,6 +153,7 @@ export default function AdminPerformances({ data, onChanged }) {
     await revalidatePublic();
     await onChanged();
     setBusy(false);
+    clearDirty();
     setMsg('Salvestatud ✅');
     if (addNew) clearForm(true);
     else if (!form.id) clearForm(true);
@@ -173,6 +179,7 @@ export default function AdminPerformances({ data, onChanged }) {
       .single();
     if (error) { setMsg('Esineja loomine ebaõnnestus: ' + error.message); return; }
     await onChanged();
+    markDirty();
     setArtistIds((ids) => [...ids, row.id]);
     setArtistQuery('');
   }
@@ -304,10 +311,12 @@ export default function AdminPerformances({ data, onChanged }) {
           <label>Kirjeldus (ET)
             <textarea rows={3} value={form.descr_et}
               onChange={(e) => set({ descr_et: e.target.value })} />
+            <TolkeNupp text={form.descr_en} from="en" onDone={(t) => set({ descr_et: t })} />
           </label>
           <label>Kirjeldus (EN)
             <textarea rows={3} value={form.descr_en}
               onChange={(e) => set({ descr_en: e.target.value })} />
+            <TolkeNupp text={form.descr_et} from="et" onDone={(t) => set({ descr_en: t })} />
           </label>
         </div>
 
@@ -315,7 +324,7 @@ export default function AdminPerformances({ data, onChanged }) {
         <div className="admin-chips">
           {artistIds.map((aid) => (
             <button key={aid} className="admin-chip on"
-              onClick={() => setArtistIds((ids) => ids.filter((x) => x !== aid))}>
+              onClick={() => { markDirty(); setArtistIds((ids) => ids.filter((x) => x !== aid)); }}>
               {artistById[aid]?.name || '?'} ✕
             </button>
           ))}
@@ -330,7 +339,7 @@ export default function AdminPerformances({ data, onChanged }) {
           <div className="admin-suggest">
             {artistMatches.map((a) => (
               <button key={a.id}
-                onClick={() => { setArtistIds((ids) => [...ids, a.id]); setArtistQuery(''); }}>
+                onClick={() => { markDirty(); setArtistIds((ids) => [...ids, a.id]); setArtistQuery(''); }}>
                 {a.name}{a.country ? ` (${a.country})` : ''}
               </button>
             ))}
@@ -346,8 +355,8 @@ export default function AdminPerformances({ data, onChanged }) {
           {data.tags.map((tg) => (
             <button key={tg.id}
               className={`admin-chip ${tagIds.includes(tg.id) ? 'on' : ''}`}
-              onClick={() => setTagIds((ids) =>
-                ids.includes(tg.id) ? ids.filter((x) => x !== tg.id) : [...ids, tg.id])}>
+              onClick={() => { markDirty(); setTagIds((ids) =>
+                ids.includes(tg.id) ? ids.filter((x) => x !== tg.id) : [...ids, tg.id]); }}>
               {tg.name_et}
             </button>
           ))}

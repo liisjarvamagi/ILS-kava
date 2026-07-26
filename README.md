@@ -82,6 +82,19 @@ i-land-sound-ehitusplaan.md ja i-land-sound-tegevuskava-faas2.md.
   olulise info ja meilimalli. Massimuudatused töötavad värske
   nimekirja pealt ja jäävad kaitseta — need on nagunii mõeldud
   ühe inimese suureks korrastuseks
+- Lahkumiskaitse adminis: kui vormis (esinemine, esineja, ala,
+  oluline info, meilimall) on salvestamata muudatusi, küsib äpp enne
+  saki vahetust, teise kirje avamist või lehelt lahkumist üle, kas
+  tahad ilma salvestamata edasi minna. Salvestamine, "Tühista
+  muutmine" ja kinnitatud lahkumine võtavad hoiatuse maha
+- Tõlkenupp adminis: kakskeelsete väljade (esineja bio, esinemise ja
+  ala kirjeldus, olulise info sisu, meilimalli sisu) all on nupp
+  "Tõlgi eesti keelest" / "Tõlgi inglise keelest", mis laseb Claude'il
+  teise keele teksti tõlkida ja täidab välja. Tõlge on mustand — saad
+  seda enne salvestamist vabalt muuta. Vajab ANTHROPIC_API_KEY
+  keskkonnamuutujat (console.anthropic.com → API Keys; lisa Vercelisse
+  ja .env.local faili). Tõlkida saab ainult admin, nii et võti on
+  võõraste eest kaitstud
 - Kava planeerija (faas 2): kalendrivaade nagu Google Calendar — read
   on alad, aeg jookseb paremale. Plokki lohistad hiirega (aeg liigub
   5 min sammuga, teisele reale tõstes vahetub ala), paremast servast

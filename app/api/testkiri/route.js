@@ -3,7 +3,7 @@
 // sisse logitud JA admins tabelis — keegi teine testkirja saata ei saa.
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { serviceClient, sendDailyTo, todayTallinn } from '../../../lib/emailDaily';
+import { serviceClient, sendDailyTo, todayTallinn, publicAppUrl } from '../../../lib/emailDaily';
 
 export async function POST(request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -45,7 +45,7 @@ export async function POST(request) {
 
   const { data: profile } = await supabase.from('profiles')
     .select('locale').eq('id', user.id).maybeSingle();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+  const appUrl = publicAppUrl(new URL(request.url).origin);
 
   // Sihtaadress: admin võib panna vormi teise aadressi (nt kui Resendi
   // konto on tehtud teise meiliga kui äppi sisselogimine). Tühi =
