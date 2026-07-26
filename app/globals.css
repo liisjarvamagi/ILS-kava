@@ -1021,6 +1021,27 @@ a.signin-sheet-btn { display: flex; align-items: center; justify-content: center
   margin-bottom: 12px;
 }
 .profile-toggle-title { display: block; font-size: 14px; font-weight: 700; }
+/* Hommikukirja kellaaja valik profiilis */
+.profile-hour {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: -4px 0 12px;
+  font-size: 14px;
+}
+.profile-hour select {
+  background: var(--surface3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+}
 .profile-toggle-hint {
   display: block;
   font-size: 12px;

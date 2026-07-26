@@ -16,6 +16,7 @@ export default function ProfileArea({ locale, authReady }) {
   const [checking, setChecking] = useState(authReady); // sessiooni kontroll käib
   const [user, setUser] = useState(null);
   const [wantsEmail, setWantsEmail] = useState(false);
+  const [emailHour, setEmailHour] = useState(null); // null = vaikimisi aeg
   const [savedCount, setSavedCount] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -39,10 +40,13 @@ export default function ProfileArea({ locale, authReady }) {
         await mergeFavsWithAccount();
         // hommikukirja eelistus profiilist
         const { data } = await supabase.from('profiles')
-          .select('wants_daily_email')
+          .select('wants_daily_email, daily_email_hour')
           .eq('id', session.user.id)
           .single();
-        if (data) setWantsEmail(Boolean(data.wants_daily_email));
+        if (data) {
+          setWantsEmail(Boolean(data.wants_daily_email));
+          setEmailHour(data.daily_email_hour ?? null);
+        }
         // kas kasutaja on admin → näita adminipaneeli linki
         const { data: adminRow } = await supabase.from('admins')
           .select('user_id')
@@ -69,6 +73,18 @@ export default function ProfileArea({ locale, authReady }) {
       .update({ wants_daily_email: next })
       .eq('id', user.id);
     if (error) setWantsEmail(!next); // ei õnnestunud → võta tagasi
+  }
+
+  async function changeEmailHour(value) {
+    const supabase = supabaseBrowser();
+    if (!supabase || !user) return;
+    const next = value === '' ? null : Number(value);
+    const prev = emailHour;
+    setEmailHour(next); // kohe nähtav, andmebaas järgi
+    const { error } = await supabase.from('profiles')
+      .update({ daily_email_hour: next })
+      .eq('id', user.id);
+    if (error) setEmailHour(prev); // ei õnnestunud → võta tagasi
   }
 
   async function signOut() {
@@ -105,6 +121,21 @@ export default function ProfileArea({ locale, authReady }) {
         </span>
         <span className="switch" aria-hidden><span className="switch-dot" /></span>
       </button>
+
+      {wantsEmail && (
+        <label className="profile-hour">
+          <span>{tr.profile_email_time}</span>
+          <select
+            value={emailHour === null ? '' : String(emailHour)}
+            onChange={(e) => changeEmailHour(e.target.value)}
+          >
+            <option value="">{tr.profile_email_time_default}</option>
+            {[6, 7, 8, 9, 10, 11, 12, 13, 14].map((h) => (
+              <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+            ))}
+          </select>
+        </label>
+      )}
 
       {isAdmin && (
         <a href="/admin" className="btn-secondary profile-admin-link">

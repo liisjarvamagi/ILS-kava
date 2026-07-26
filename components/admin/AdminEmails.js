@@ -10,6 +10,7 @@ export default function AdminEmails() {
   const [tpl, setTpl] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [testTo, setTestTo] = useState(''); // tühi = enda aadress
 
   useEffect(() => {
     (async () => {
@@ -31,19 +32,29 @@ export default function AdminEmails() {
     const supabase = supabaseBrowser();
     const { error } = await supabase.from('email_templates').update({
       subject_et: tpl.subject_et, subject_en: tpl.subject_en,
-      body_et: tpl.body_et, body_en: tpl.body_en
+      body_et: tpl.body_et, body_en: tpl.body_en,
+      send_hour: Number(tpl.send_hour ?? 9)
     }).eq('key', 'daily_schedule');
     setBusy(false);
     setMsg(error ? 'Salvestus ebaõnnestus: ' + error.message : 'Salvestatud ✅');
   }
 
   async function sendTest() {
+    const to = testTo.trim();
+    if (to && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      setMsg('Testkirja aadress ei näe õige välja: ' + to);
+      return;
+    }
     setBusy(true); setMsg(null);
     const supabase = supabaseBrowser();
     const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch('/api/testkiri', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${session.access_token}` }
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ to: to || null })
     });
     const body = await res.json().catch(() => ({}));
     setBusy(false);
@@ -65,10 +76,23 @@ export default function AdminEmails() {
   return (
     <section className="admin-card">
       <h2>Hommikukiri</h2>
-      <p className="admin-hint">Kiri läheb igal festivalihommikul kell 09.00
+      <p className="admin-hint">Kiri läheb igal festivalihommikul
         kasutajatele, kes on profiilis hommikukirja sisse lülitanud ja
-        kellel on selle päeva kavas valikuid. Kohatäited: {'{{nimi}}'},
+        kellel on selle päeva kavas valikuid. Allpool valid vaikimisi
+        kellaaja; iga kasutaja võib profiilis endale teise aja valida.
+        Kohatäited: {'{{nimi}}'},
         {' {{kava}}'}, {'{{loobu_link}}'} (viimane on kohustuslik).</p>
+
+      <div className="admin-grid">
+        <label>Saatmise kellaaeg (vaikimisi, Eesti aeg)
+          <select value={tpl.send_hour ?? 9}
+            onChange={(e) => set({ send_hour: Number(e.target.value) })}>
+            {[6, 7, 8, 9, 10, 11, 12, 13, 14].map((h) => (
+              <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       <div className="admin-grid">
         <label>Pealkiri (ET)
@@ -87,13 +111,22 @@ export default function AdminEmails() {
         </label>
       </div>
 
+      <div className="admin-grid">
+        <label>Testkirja aadress (tühi = Su enda sisselogimisaadress).
+          NB! Resendi tasuta konto saadab enne domeeni kinnitamist
+          ainult Resendi konto enda aadressile.
+          <input type="email" value={testTo} placeholder="nimi@näide.ee"
+            onChange={(e) => setTestTo(e.target.value)} />
+        </label>
+      </div>
+
       {msg && <p className="admin-msg">{msg}</p>}
       <div className="admin-actions">
         <button className="btn-primary" disabled={busy} onClick={save}>
           {busy ? '…' : 'Salvesta'}
         </button>
         <button className="btn-secondary" disabled={busy} onClick={sendTest}>
-          ✉️ Saada testkiri mulle
+          ✉️ Saada testkiri
         </button>
       </div>
     </section>

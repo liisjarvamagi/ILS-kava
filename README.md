@@ -56,11 +56,15 @@ i-land-sound-ehitusplaan.md ja i-land-sound-tegevuskava-faas2.md.
   kaartide all on "Oluline info" kaardid (kohalejõudmine, parkimine,
   majutus, märkused) — sisu tuleb event_info tabelist ja on admini
   Oluline info sakis muudetav
-- Hommikukiri (faas 2): igal festivalipäeval kell 09.00 saadab äpp
-  tellinud kasutajatele meili nende tänase kavaga. Sisu ja kujunduse
-  muudad adminis Meilid sakis ({{nimi}}, {{kava}} ja {{loobu_link}}
+- Hommikukiri (faas 2): igal festivalipäeval saadab äpp tellinud
+  kasutajatele meili nende tänase kavaga. Kellaaja valib korraldaja
+  Meilid sakis (vaikimisi 09.00) ja iga kasutaja võib profiilis
+  endale teise aja valida (06.00–14.00). Sisu ja kujunduse muudad
+  adminis Meilid sakis ({{nimi}}, {{kava}} ja {{loobu_link}}
   kohatäited), "Saada testkiri mulle" nupp näitab tulemust enne päris
-  saatmist. Igas kirjas on loobumislink, mis töötab ilma sisselogimata
+  saatmist. Igas kirjas on loobumislink, mis töötab ilma sisselogimata.
+  Sama päeva kirja ei saadeta kellelegi kaks korda, isegi kui saatja
+  käivitub mitu korda
 - Targem import (faas 2): kui tabelis on esineja nimi, mida süsteemis
   pole, aga on väga sarnane olemasolevaga (nt trükiviga), pakub
   eelvaade "Kasuta: …" nuppu. Kui duplikaat siiski tekkis, liidab
@@ -102,6 +106,9 @@ i-land-sound-ehitusplaan.md ja i-land-sound-tegevuskava-faas2.md.
      vormist, vaadata saavad kõik, üles laadida ainult adminid)
    - `supabase/migrations/0008_hommikukiri.sql` (hommikukirja mall:
      admin saab kirja sisu Meilid sakis muuta)
+   - `supabase/migrations/0009_kirja_kellaaeg.sql` (hommikukirja
+     kellaaeg: korraldaja vaikimisi aeg + kasutaja isiklik valik
+     profiilis + topeltsaatmise tõke)
    - `supabase/seed.sql` (2026 päris kava: 17 ala, 171 esinemist)
    - `supabase/seed2_esinejad.sql` (teeb pealkirjadest 160 päris
      esinejat: muusikaaladel nimed, töötubadel juhendajad; TBA jms
@@ -146,16 +153,34 @@ kirju ei saadeta.
      allkirjastab loobumislingid
    - `EMAIL_FROM` — saatja, nt `I Land Sound <kava@ilandsound.ee>`
      (võib alguses ära jätta, siis kasutatakse Resendi testiaadressi)
-3. Käivita Supabase'is `supabase/migrations/0008_hommikukiri.sql`
-   (kui sa punktis "Käivitamine" seda juba ei teinud)
-4. Pushi kood GitHubi — vercel.json failis on ajastus juba kirjas
-   (iga päev 09.00 Eesti aja järgi). Vercel loeb selle ise sisse
-5. Kontrolli adminis: Meilid sakk → "Saada testkiri mulle". Kiri
+3. Käivita Supabase'is `supabase/migrations/0008_hommikukiri.sql` ja
+   `supabase/migrations/0009_kirja_kellaaeg.sql`
+   (kui sa punktis "Käivitamine" neid juba ei teinud)
+4. Lisa GitHubis saladus tunnikäivitaja jaoks: repo lehel Settings →
+   Secrets and variables → Actions → New repository secret. Nimi
+   `CRON_SECRET`, väärtus sama, mis Vercelis. Ilma selleta töötab
+   ainult Verceli enda kord-päevas-käivitus kell 09.00 ja kasutajate
+   valitud kellaajad ei rakendu
+5. Pushi kood GitHubi. Ajastus käib kahte kanalit pidi: Vercel
+   (vercel.json, üks kord päevas, varuvariant) ja GitHubi töövoog
+   (.github/workflows/hommikukiri.yml, iga tund hommikust lõunani).
+   Saatja ise otsustab, kellele on parasjagu aeg kiri saata, ja peab
+   meeles, kes on tänase kirja juba saanud — seepärast võib teda
+   julgelt mitu korda käivitada
+6. Kontrolli adminis: Meilid sakk → "Saada testkiri mulle". Kiri
    tuleb Su enda aadressile ja näitab, milline hommikukiri välja näeb
 
 Kasutaja tellib kirja profiililehel linnukesega "Saada mulle igal
-festivalihommikul minu päeva kava". Kiri läheb ainult neile, kes on
-linnukese pannud, ja ainult festivalipäevadel.
+festivalihommikul minu päeva kava" ja võib sealsamas valida endale
+sobiva kellaaja. Kiri läheb ainult neile, kes on linnukese pannud,
+ja ainult festivalipäevadel.
+
+NB! Resendi tasuta konto saadab enne oma domeeni kinnitamist kirju
+AINULT sellele e-posti aadressile, millega Resendi konto tehtud on.
+Kui testkiri annab vea "You can only send testing emails to your own
+email address", ongi see põhjus: kas kinnita Resendis oma domeen
+(Domains → Add domain) või logi äppi sisse sama aadressiga, millega
+tegid Resendi konto.
 
 ## GitHubi ja Vercelisse
 

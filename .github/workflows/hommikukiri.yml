@@ -1,0 +1,17 @@
+name: Hommikukiri
+
+on:
+  schedule:
+    # UTC tunnid 2–12 = Eesti aeg u 05.00–15.00
+    - cron: '0 2-12 * * *'
+  workflow_dispatch: {} # käsitsi käivitamine testiks
+
+jobs:
+  saada:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kutsu saatjat
+        run: |
+          curl -fsS --max-time 55 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://ils-kava.vercel.app/api/hommikukiri"

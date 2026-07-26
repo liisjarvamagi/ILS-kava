@@ -47,15 +47,33 @@ export async function POST(request) {
     .select('locale').eq('id', user.id).maybeSingle();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
 
+  // Sihtaadress: admin võib panna vormi teise aadressi (nt kui Resendi
+  // konto on tehtud teise meiliga kui äppi sisselogimine). Tühi =
+  // admini enda aadress. Saata saab ainult admin, seega spämmiohtu pole.
+  let to = user.email;
+  try {
+    const body = await request.json();
+    const asked = String(body?.to || '').trim();
+    if (asked) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(asked)) {
+        return NextResponse.json({ error: 'Vigane e-posti aadress' }, { status: 400 });
+      }
+      to = asked;
+    }
+  } catch { /* body puudub → enda aadress */ }
+
   try {
     const r = await sendDailyTo(
       supabase,
-      { id: user.id, email: user.email, locale: profile?.locale || 'et' },
+      { id: user.id, email: to, locale: profile?.locale || 'et' },
       day, appUrl,
       { sendEmpty: true } // testkiri läheb ka tühja kavaga
     );
-    if (r === 'fail') return NextResponse.json({ error: 'Saatmine ebaõnnestus' }, { status: 500 });
-    return NextResponse.json({ ok: true, day, to: user.email });
+    if (r.status === 'fail') {
+      return NextResponse.json(
+        { error: r.error || 'Saatmine ebaõnnestus' }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, day, to });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
