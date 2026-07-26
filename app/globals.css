@@ -61,6 +61,28 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 /* Tõlkenupp kakskeelsete väljade all */
 .tolke { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .tolke-err { font-size: 12px; color: #e08585; }
+/* Alapealkiri admini kaardi sees */
+.admin-subhead {
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 16px;
+}
+/* Sündmuse kaanefoto eelvaade adminis */
+.admin-cover {
+  display: block;
+  max-width: 320px;
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  margin: 8px 0;
+}
+/* Klõpsatav link info kaardi tekstis */
+.info-card-link {
+  color: var(--accent);
+  text-decoration: underline;
+  word-break: break-all;
+}
 .lang-switch {
   display: flex;
   gap: 2px;

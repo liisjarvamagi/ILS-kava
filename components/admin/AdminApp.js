@@ -16,6 +16,7 @@ import AdminInfo from './AdminInfo';
 import AdminImport from './AdminImport';
 import AdminEmails from './AdminEmails';
 import AdminAdmins from './AdminAdmins';
+import AdminEvent from './AdminEvent';
 
 const TABS = [
   { key: 'planner', label: '📅 Planeerija' },
@@ -26,6 +27,7 @@ const TABS = [
   { key: 'info', label: 'Oluline info' },
   { key: 'import', label: '⇪ Import' },
   { key: 'emails', label: 'Meilid' },
+  { key: 'event', label: '🎪 Sündmus' },
   { key: 'admins', label: 'Adminid', superOnly: true }
 ];
 
@@ -129,6 +131,7 @@ export default function AdminApp() {
           {tab === 'info' && <AdminInfo data={data} onChanged={refresh} />}
           {tab === 'import' && <AdminImport data={data} onChanged={refresh} />}
           {tab === 'emails' && <AdminEmails />}
+          {tab === 'event' && <AdminEvent data={data} onChanged={refresh} />}
           {tab === 'admins' && role === 'superadmin' && <AdminAdmins />}
         </main>
       )}

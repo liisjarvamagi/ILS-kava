@@ -82,6 +82,18 @@ i-land-sound-ehitusplaan.md ja i-land-sound-tegevuskava-faas2.md.
   olulise info ja meilimalli. Massimuudatused töötavad värske
   nimekirja pealt ja jäävad kaitseta — need on nagunii mõeldud
   ühe inimese suureks korrastuseks
+- Sündmuse seaded (admini 🎪 Sündmus sakk): festivali algus- ja
+  lõpukuupäev, kaanefoto üleslaadimisega ning piletite ja kodukorra
+  lingid. Kuupäevade järgi tehakse esinemise vormi festivalipäeva
+  rippmenüü (käsitsi kuupäeva trükkimist pole enam vaja) ja
+  planeerijas on valitavad ka veel tühjad päevad. "Oluline info"
+  kaartide tekstis olevad https-lingid on äpis nüüd klõpsatavad,
+  nii et piletite ja kodukorra info saab lisada info kaartidena.
+  Kuupäevad on adminis kujul pp.kk. Sündmus sakis on ka "Arhiveeri
+  vana kava" nupp: peidab ühe liigutusega kõik avaldatud esinemised,
+  mille päev on enne uue festivali algust — midagi ei kustutata,
+  esinejate profiilid jäävad uueks aastaks alles ja peidetud
+  esinemised saab Esinemised sakis vajadusel uuesti avaldada
 - Lahkumiskaitse adminis: kui vormis (esinemine, esineja, ala,
   oluline info, meilimall) on salvestamata muudatusi, küsib äpp enne
   saki vahetust, teise kirje avamist või lehelt lahkumist üle, kas
@@ -135,6 +147,9 @@ i-land-sound-ehitusplaan.md ja i-land-sound-tegevuskava-faas2.md.
      kaitse: kui kaks adminit muudavad sama kirjet korraga, ei
      kirjutata kellegi tööd vaikselt üle, vaid hilisem salvestaja
      saab hoiatuse)
+   - `supabase/migrations/0011_syndmuse_seaded.sql` (sündmuse seaded:
+     festivali kuupäevad, kaanefoto, piletite ja kodukorra lingid —
+     admini Sündmus sakk)
    - `supabase/seed.sql` (2026 päris kava: 17 ala, 171 esinemist)
    - `supabase/seed2_esinejad.sql` (teeb pealkirjadest 160 päris
      esinejat: muusikaaladel nimed, töötubadel juhendajad; TBA jms

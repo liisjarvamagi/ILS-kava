@@ -42,6 +42,26 @@ export function timesToIso(festivalDay, startTime, endTime) {
   return { start_at, end_at };
 }
 
+// Festivalipäevade loend seadete järgi: algus- ja lõpukuupäev (kaasa
+// arvatud) → ['2026-07-16', '2026-07-17', …]. Piir 30 päeva hoiab
+// vigase sisestuse (nt vale aasta) eest.
+export function festivalDays(settings) {
+  if (!settings?.starts_on || !settings?.ends_on) return [];
+  const days = [];
+  let d = settings.starts_on;
+  while (d <= settings.ends_on && days.length < 30) {
+    days.push(d);
+    d = addDays(d, 1);
+  }
+  return days;
+}
+
+// Kuupäev kujul pp.kk (nt 2026-07-16 → 16.07)
+export function fmtDay(dateStr) {
+  if (!dateStr || dateStr.length < 10) return dateStr || '';
+  return `${dateStr.slice(8, 10)}.${dateStr.slice(5, 7)}`;
+}
+
 export function slugify(name) {
   return (name || '')
     .normalize('NFKD')
@@ -109,20 +129,22 @@ export async function revalidatePublic() {
 export async function loadAdminData() {
   const supabase = supabaseBrowser();
   if (!supabase) return null;
-  const [stages, artists, perfs, tags, info] = await Promise.all([
+  const [stages, artists, perfs, tags, info, settings] = await Promise.all([
     supabase.from('stages').select('*').order('sort_order'),
     supabase.from('artists').select('*').order('name'),
     supabase.from('performances')
       .select('*, performance_artists(artist_id, sort_order), performance_tags(tag_id)')
       .order('start_at'),
     supabase.from('tags').select('*').order('name_et'),
-    supabase.from('event_info').select('*').order('sort_order')
+    supabase.from('event_info').select('*').order('sort_order'),
+    supabase.from('event_settings').select('*').eq('id', 1).maybeSingle()
   ]);
   return {
     stages: stages.data || [],
     artists: artists.data || [],
     performances: perfs.data || [],
     tags: tags.data || [],
-    info: info.data || []
+    info: info.data || [],
+    settings: settings.data || null // null = 0011 SQL veel tegemata
   };
 }

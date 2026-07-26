@@ -8,7 +8,7 @@
 // kava kohe.
 import { useMemo, useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
-import { isoToParts, timesToIso, slugify, revalidatePublic, guardedUpdate, CONFLICT_MSG } from './adminShared';
+import { isoToParts, timesToIso, slugify, revalidatePublic, guardedUpdate, CONFLICT_MSG, festivalDays, fmtDay } from './adminShared';
 import TolkeNupp from './TolkeNupp';
 import { markDirty, clearDirty, isDirty, DIRTY_MSG } from './dirty';
 
@@ -20,7 +20,11 @@ const EMPTY = {
 };
 
 export default function AdminPerformances({ data, onChanged }) {
-  const [form, setForm] = useState({ ...EMPTY, stage_id: data.stages[0]?.id || '' });
+  const [form, setForm] = useState({
+    ...EMPTY,
+    stage_id: data.stages[0]?.id || '',
+    festival_day: festivalDays(data.settings)[0] || EMPTY.festival_day
+  });
   const [artistIds, setArtistIds] = useState([]);
   const [tagIds, setTagIds] = useState([]);
   const [artistQuery, setArtistQuery] = useState('');
@@ -71,7 +75,9 @@ export default function AdminPerformances({ data, onChanged }) {
     setForm((f) => ({
       ...EMPTY,
       stage_id: keepContext ? f.stage_id : (data.stages[0]?.id || ''),
-      festival_day: keepContext ? f.festival_day : EMPTY.festival_day
+      festival_day: keepContext
+        ? f.festival_day
+        : (festivalDays(data.settings)[0] || EMPTY.festival_day)
     }));
     setArtistIds([]);
     setTagIds([]);
@@ -273,8 +279,21 @@ export default function AdminPerformances({ data, onChanged }) {
             </select>
           </label>
           <label>Festivalipäev
-            <input type="date" value={form.festival_day}
-              onChange={(e) => set({ festival_day: e.target.value })} />
+            {(() => {
+              // Rippmenüü Sündmus saki kuupäevade järgi; kui seadeid
+              // pole (0011 SQL tegemata) või kirje päev jääb vahemikust
+              // välja, näitame tavalist kuupäevavälja
+              const days = festivalDays(data.settings);
+              return days.length && days.includes(form.festival_day) ? (
+                <select value={form.festival_day}
+                  onChange={(e) => set({ festival_day: e.target.value })}>
+                  {days.map((d) => <option key={d} value={d}>{fmtDay(d)}</option>)}
+                </select>
+              ) : (
+                <input type="date" value={form.festival_day}
+                  onChange={(e) => set({ festival_day: e.target.value })} />
+              );
+            })()}
           </label>
           <label>Algus
             <input type="time" value={form.startTime}
@@ -399,7 +418,7 @@ export default function AdminPerformances({ data, onChanged }) {
             onClick={() => setListDay('all')}>Kõik päevad</button>
           {days.map((d) => (
             <button key={d} className={`admin-chip ${listDay === d ? 'on' : ''}`}
-              onClick={() => setListDay(d)}>{d.slice(5)}</button>
+              onClick={() => setListDay(d)}>{fmtDay(d)}</button>
           ))}
           <button className="admin-chip"
             onClick={() => setSelected(shownPerfs.map((p) => p.id))}>
@@ -472,7 +491,7 @@ export default function AdminPerformances({ data, onChanged }) {
                     {missingEn && <span className="admin-badge admin-badge-warn">🟡 tõlge</span>}
                   </div>
                   <div className="admin-row-sub">
-                    {p.festival_day.slice(5)} · {isoToParts(p.start_at).time}–{isoToParts(p.end_at).time} · {s?.name_et || '?'}
+                    {fmtDay(p.festival_day)} · {isoToParts(p.start_at).time}–{isoToParts(p.end_at).time} · {s?.name_et || '?'}
                   </div>
                 </div>
                 <button className="admin-mini" onClick={() => edit(p)}>Muuda</button>

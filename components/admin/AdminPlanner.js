@@ -9,7 +9,7 @@
 // salvestub andmebaasi ja värskendab avalikku kava.
 import { useMemo, useRef, useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
-import { revalidatePublic, guardedUpdate, CONFLICT_MSG } from './adminShared';
+import { revalidatePublic, guardedUpdate, CONFLICT_MSG, festivalDays, fmtDay } from './adminShared';
 import {
   PX_PER_MIN, ROW_H, SNAP_MIN, snap, computeAxis, msToX,
   findClashes, shiftTimes, resizeEnd, fmtHM
@@ -18,8 +18,13 @@ import {
 const DRAG_THRESHOLD = 5; // px enne, kui klõps muutub lohistamiseks
 
 export default function AdminPlanner({ data, onChanged }) {
+  // Päevad: Sündmus saki kuupäevad + päevad, kus juba on esinemisi.
+  // Nii saab planeerida ka veel tühja päeva peale.
   const days = useMemo(
-    () => [...new Set(data.performances.map((p) => p.festival_day))].sort(),
+    () => [...new Set([
+      ...festivalDays(data.settings),
+      ...data.performances.map((p) => p.festival_day)
+    ])].sort(),
     [data]
   );
   const [day, setDay] = useState(days[0] || '2026-07-16');
@@ -256,7 +261,7 @@ export default function AdminPlanner({ data, onChanged }) {
       <div className="admin-chips">
         {days.map((d) => (
           <button key={d} className={`admin-chip ${day === d ? 'on' : ''}`}
-            onClick={() => setDay(d)}>{d.slice(5)}</button>
+            onClick={() => setDay(d)}>{fmtDay(d)}</button>
         ))}
       </div>
 
