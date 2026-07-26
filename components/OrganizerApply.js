@@ -21,9 +21,17 @@ export default function OrganizerApply({ authReady }) {
   const [msg, setMsg] = useState(null);
   const [done, setDone] = useState(null); // valmis: sündmuse slug
   const [f, setF] = useState({
-    org_name: '', reg_code: '', contact_name: '', phone: '', website: '',
+    org_name: '', reg_code: '', contact_name: '', contact_email: '',
+    phone: '', website: '',
     event_name: '', slug: '', starts_on: '', ends_on: ''
   });
+
+  // e-posti lahter täidetakse konto meiliga ette, aga jääb muudetavaks
+  useEffect(() => {
+    if (user?.email) {
+      setF((x) => (x.contact_email ? x : { ...x, contact_email: user.email }));
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!authReady) { setChecking(false); return; }
@@ -44,6 +52,9 @@ export default function OrganizerApply({ authReady }) {
     if (f.org_name.trim().length < 3) return 'Kirjuta MTÜ või OÜ ametlik nimi.';
     if (!/^\d{8}$/.test(f.reg_code.trim())) return 'Registrikood on 8 numbrit — leiad selle äriregistrist.';
     if (f.contact_name.trim().length < 2) return 'Kontaktisiku nimi on puudu.';
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.contact_email.trim())) {
+      return 'Kirjuta toimiv e-posti aadress — sinna tuleb vastus taotlusele.';
+    }
     return null;
   }
   function step2Ok() {
@@ -67,6 +78,7 @@ export default function OrganizerApply({ authReady }) {
       p_org_name: f.org_name.trim(),
       p_reg_code: f.reg_code.trim(),
       p_contact_name: f.contact_name.trim(),
+      p_contact_email: f.contact_email.trim(),
       p_contact_phone: f.phone.trim() || null,
       p_website: f.website.trim() || null,
       p_event_name: f.event_name.trim(),
@@ -109,7 +121,7 @@ export default function OrganizerApply({ authReady }) {
         <ol className="apply-list">
           <li>Taotlus on platvormi omaniku juures ülevaatamisel —
             tavaliselt paar tööpäeva. Vastus tuleb meilile
-            ({user.email}).</li>
+            ({f.contact_email.trim() || user.email}).</li>
           <li>Sa võid kava JUBA PRAEGU sisestama hakata: adminipaneel
             on Sulle lahti. Avalikuks läheb sündmus pärast kinnitust
             ja arvet.</li>
@@ -139,6 +151,11 @@ export default function OrganizerApply({ authReady }) {
           </label>
           <label className="apply-field">Kontaktisik
             <input value={f.contact_name} onChange={(e) => set({ contact_name: e.target.value })} />
+          </label>
+          <label className="apply-field">E-post
+            <input type="email" inputMode="email" value={f.contact_email}
+              onChange={(e) => set({ contact_email: e.target.value })} />
+            <small>Sellele aadressile tuleb vastus taotlusele.</small>
           </label>
           <label className="apply-field">Telefon (valikuline)
             <input inputMode="tel" value={f.phone} onChange={(e) => set({ phone: e.target.value })} />
