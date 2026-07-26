@@ -13,7 +13,7 @@ import { getMyIds, toggleMyId } from '../lib/mySchedule';
 import { downloadIcs } from '../lib/ics';
 import ActCard from './ActCard';
 
-export default function MySchedule({ data, locale }) {
+export default function MySchedule({ data, locale, base }) {
   const tr = t(locale);
   const [ids, setIds] = useState(null); // null = veel laadimata
   const [removedId, setRemovedId] = useState(null); // viimati eemaldatud esinemine
@@ -81,7 +81,7 @@ export default function MySchedule({ data, locale }) {
           <h2>{tr.my_empty_title}</h2>
           <p>{tr.my_empty_body}</p>
           <p style={{ marginTop: 10 }}>
-            <Link href={`/${locale}`} style={{ color: 'var(--accent)', fontWeight: 700 }}>
+            <Link href={base} style={{ color: 'var(--accent)', fontWeight: 700 }}>
               {tr.nav_schedule} →
             </Link>
           </p>
@@ -112,6 +112,7 @@ export default function MySchedule({ data, locale }) {
                       timeLabel={`${fmtTime(p.start_at)} – ${fmtTime(p.end_at)} · ${stageName}`}
                       color={s?.color || 'var(--muted)'}
                       locale={locale}
+                      base={base}
                       onChange={refresh}
                       onRemoved={handleRemoved}
                     />

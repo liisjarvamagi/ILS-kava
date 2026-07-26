@@ -31,12 +31,13 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Sisselogimata' }, { status: 401 });
   }
 
-  const { data: adminRow } = await supabase
-    .from('admins')
-    .select('user_id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-  if (!adminRow) {
+  const [{ data: eaRow }, { data: paRow }] = await Promise.all([
+    supabase.from('event_admins').select('event_id')
+      .eq('user_id', user.id).limit(1).maybeSingle(),
+    supabase.from('platform_admins').select('user_id')
+      .eq('user_id', user.id).maybeSingle()
+  ]);
+  if (!eaRow && !paRow) {
     return NextResponse.json({ error: 'Pole admin' }, { status: 403 });
   }
 

@@ -7,9 +7,9 @@ import { t } from '../lib/i18n';
 
 const ZOOM = 2.4; // mitu korda kaarti sisse suumitakse
 
-export default function StageMap({ point, coords, color, locale }) {
+export default function StageMap({ point, coords, color, locale, base, mapUrl }) {
   const tr = t(locale);
-  if (!point) {
+  if (!point || !mapUrl) {
     // kaardikohta pole → näita vähemalt juhiste nuppu, kui GPS on
     if (!coords) return null;
     const q = `${coords.lat.toFixed(6)},${coords.lng.toFixed(6)}`;
@@ -32,10 +32,10 @@ export default function StageMap({ point, coords, color, locale }) {
 
   return (
     <div className="location-block">
-      <Link href={`/${locale}/kaart`} className="stage-map" aria-label={tr.map_big}>
+      <Link href={`${base}/kaart`} className="stage-map" aria-label={tr.map_big}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/kaardid/festival.png"
+          src={mapUrl}
           alt=""
           className="stage-map-img"
           style={{

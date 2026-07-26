@@ -20,9 +20,26 @@ export async function POST(request) {
   });
   const { data: { user } } = await userClient.auth.getUser(token);
   if (!user) return NextResponse.json({ error: 'Sisselogimata' }, { status: 401 });
-  const { data: adminRow } = await userClient
-    .from('admins').select('user_id').eq('user_id', user.id).maybeSingle();
-  if (!adminRow) return NextResponse.json({ error: 'Pole admin' }, { status: 403 });
+  // Sündmus tuleb vormist; kontrollime, et kutsuja on SELLE
+  // sündmuse admin (või platvormi omanik)
+  let eventId = null, to = null;
+  try {
+    const body = await request.json();
+    eventId = String(body?.event_id || '');
+    to = String(body?.to || '').trim() || null;
+  } catch { /* body puudub */ }
+  if (!/^[0-9a-f-]{30,40}$/i.test(eventId || '')) {
+    return NextResponse.json({ error: 'Sündmus on määramata' }, { status: 400 });
+  }
+  const [{ data: eaRow }, { data: paRow }] = await Promise.all([
+    userClient.from('event_admins').select('user_id')
+      .eq('user_id', user.id).eq('event_id', eventId).maybeSingle(),
+    userClient.from('platform_admins').select('user_id')
+      .eq('user_id', user.id).maybeSingle()
+  ]);
+  if (!eaRow && !paRow) {
+    return NextResponse.json({ error: 'Pole selle sündmuse admin' }, { status: 403 });
+  }
 
   const supabase = serviceClient();
   if (!supabase) {
@@ -30,15 +47,20 @@ export async function POST(request) {
       { error: 'SUPABASE_SERVICE_ROLE_KEY on Vercelis seadistamata' }, { status: 500 });
   }
 
+  const { data: event } = await supabase.from('events')
+    .select('id, slug, name').eq('id', eventId).maybeSingle();
+  if (!event) return NextResponse.json({ error: 'Sündmust ei leitud' }, { status: 404 });
+
   // Testiks: tänane päev, või kui täna pole festival, siis esimene
-  // päev, kus kavas midagi on.
+  // päev, kus selle sündmuse kavas midagi on.
   let day = todayTallinn();
   const { count } = await supabase.from('performances')
     .select('id', { count: 'exact', head: true })
+    .eq('event_id', event.id)
     .eq('festival_day', day).eq('is_published', true);
   if (!count) {
     const { data: first } = await supabase.from('performances')
-      .select('festival_day').eq('is_published', true)
+      .select('festival_day').eq('event_id', event.id).eq('is_published', true)
       .order('festival_day').limit(1).maybeSingle();
     if (first) day = first.festival_day;
   }
@@ -48,25 +70,17 @@ export async function POST(request) {
   const appUrl = publicAppUrl(new URL(request.url).origin);
 
   // Sihtaadress: admin võib panna vormi teise aadressi (nt kui Resendi
-  // konto on tehtud teise meiliga kui äppi sisselogimine). Tühi =
-  // admini enda aadress. Saata saab ainult admin, seega spämmiohtu pole.
-  let to = user.email;
-  try {
-    const body = await request.json();
-    const asked = String(body?.to || '').trim();
-    if (asked) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(asked)) {
-        return NextResponse.json({ error: 'Vigane e-posti aadress' }, { status: 400 });
-      }
-      to = asked;
-    }
-  } catch { /* body puudub → enda aadress */ }
+  // konto on tehtud teise meiliga). Tühi = admini enda aadress.
+  if (to && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    return NextResponse.json({ error: 'Vigane e-posti aadress' }, { status: 400 });
+  }
+  if (!to) to = user.email;
 
   try {
     const r = await sendDailyTo(
       supabase,
       { id: user.id, email: to, locale: profile?.locale || 'et' },
-      day, appUrl,
+      event, day, appUrl,
       { sendEmpty: true } // testkiri läheb ka tühja kavaga
     );
     if (r.status === 'fail') {

@@ -1,36 +1,26 @@
 'use client';
-// Sündmuse üldised seaded: festivali kuupäevad (nende järgi tehakse
-// esinemise vormi ja planeerija päevade rippmenüü), kaanefoto ning
-// piletite ja kodukorra lingid. Piletite info jm sisu saab lisada
-// "Oluline info" kaartidena — lingid tekstis muutuvad äpis ise
-// klõpsatavaks.
+// Sündmuse seaded: nimi, kuupäevad, kaanefoto, lingid ja
+// avalikustamise lüliti. Platvormi otsuseid (kas sündmus on
+// aktiivne, mis pakett) siin muuta ei saa — neid haldab platvormi
+// omanik ja andmebaasi trigger keelab need igaks juhuks ka otse.
 import { useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
 import { uploadToStorage, guardedUpdate, CONFLICT_MSG, festivalDays, fmtDay, revalidatePublic } from './adminShared';
 import { markDirty, clearDirty } from './dirty';
 
 export default function AdminEvent({ data, onChanged }) {
-  const s = data.settings;
-  const [form, setForm] = useState(s ? {
-    starts_on: s.starts_on, ends_on: s.ends_on,
-    cover_image_url: s.cover_image_url || '',
-    tickets_url: s.tickets_url || '',
-    rules_url: s.rules_url || '',
-    updated_at: s.updated_at || null
-  } : null);
+  const ev = data.event;
+  const [form, setForm] = useState({
+    name: ev.name, starts_on: ev.starts_on, ends_on: ev.ends_on,
+    cover_image_url: ev.cover_image_url || '',
+    tickets_url: ev.tickets_url || '',
+    rules_url: ev.rules_url || '',
+    is_public: ev.is_public,
+    updated_at: ev.updated_at || null
+  });
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState(null);
-
-  if (!form) {
-    return (
-      <div className="admin-note">
-        Sündmuse seadete tabelit pole veel andmebaasis. Käivita Supabase
-        SQL Editoris fail supabase/migrations/0011_syndmuse_seaded.sql
-        ja tule tagasi.
-      </div>
-    );
-  }
 
   function set(patch) { markDirty(); setForm((f) => ({ ...f, ...patch })); }
 
@@ -55,6 +45,7 @@ export default function AdminEvent({ data, onChanged }) {
   }
 
   async function save() {
+    if (form.name.trim().length < 2) { setMsg('Sündmuse nimi on puudu.'); return; }
     if (!form.starts_on || !form.ends_on) { setMsg('Mõlemad kuupäevad on vaja.'); return; }
     if (form.ends_on < form.starts_on) { setMsg('Lõpp ei saa olla enne algust.'); return; }
     if (!validUrl(form.tickets_url.trim()) || !validUrl(form.rules_url.trim())) {
@@ -62,18 +53,21 @@ export default function AdminEvent({ data, onChanged }) {
     }
     setBusy(true); setMsg(null);
     const supabase = supabaseBrowser();
-    const r = await guardedUpdate(supabase, 'event_settings', 1, form.updated_at, {
+    const r = await guardedUpdate(supabase, 'events', ev.id, form.updated_at, {
+      name: form.name.trim(),
       starts_on: form.starts_on,
       ends_on: form.ends_on,
       cover_image_url: form.cover_image_url.trim() || null,
       tickets_url: form.tickets_url.trim() || null,
-      rules_url: form.rules_url.trim() || null
+      rules_url: form.rules_url.trim() || null,
+      is_public: form.is_public
     });
     setBusy(false);
     if (r.conflict) { setMsg(CONFLICT_MSG); await onChanged(); return; }
     if (r.error) { setMsg('Salvestus ebaõnnestus: ' + r.error); return; }
     setForm((f) => ({ ...f, updated_at: r.stamp }));
     clearDirty();
+    await revalidatePublic();
     await onChanged();
     setMsg('Salvestatud ✅');
   }
@@ -81,10 +75,6 @@ export default function AdminEvent({ data, onChanged }) {
   const days = festivalDays({ starts_on: form.starts_on, ends_on: form.ends_on });
 
   // ── Vana kava arhiveerimine ──
-  // Peidab kõik avaldatud esinemised, mille päev on enne praegust
-  // festivali algust. Midagi ei kustutata: esinemised, esinejad,
-  // pildid ja lood jäävad andmebaasi alles ning vajadusel saab need
-  // Esinemised sakis linnukestega uuesti avaldada.
   const oldPublished = data.performances.filter(
     (p) => p.festival_day < form.starts_on && p.is_published
   );
@@ -99,6 +89,7 @@ export default function AdminEvent({ data, onChanged }) {
     const supabase = supabaseBrowser();
     const { error } = await supabase.from('performances')
       .update({ is_published: false })
+      .eq('event_id', ev.id)
       .lt('festival_day', form.starts_on)
       .eq('is_published', true);
     setBusy(false);
@@ -111,10 +102,20 @@ export default function AdminEvent({ data, onChanged }) {
   return (
     <section className="admin-card">
       <h2>Sündmuse seaded</h2>
-      <p className="admin-hint">Festivali kuupäevade järgi tehakse
-        esinemise vormi ja planeerija päevade valik. Piletite info,
-        kodukorra jm sisu lisad "Oluline info" sakis kaartidena —
-        tekstis olevad lingid muutuvad äpis ise klõpsatavaks.</p>
+      <p className="admin-hint">Aadress: /{ev.slug} · pakett: {ev.plan}
+        {' · '}platvormi olek: {ev.is_active ? 'aktiivne' : 'välja lülitatud (aktiveerib platvormi omanik)'}</p>
+
+      <div className="admin-grid">
+        <label>Sündmuse nimi
+          <input value={form.name} onChange={(e) => set({ name: e.target.value })} />
+        </label>
+        <label className="admin-check admin-check-block">
+          <input type="checkbox" checked={form.is_public}
+            onChange={(e) => set({ is_public: e.target.checked })} />
+          Avalik (näha avastamisvaates ja oma aadressil; päriselt läheb
+          sündmus välja siis, kui ka platvormi omanik on ta sisse lülitanud)
+        </label>
+      </div>
 
       <div className="admin-grid">
         <label>Festivali algus
@@ -131,8 +132,8 @@ export default function AdminEvent({ data, onChanged }) {
           Öised esinemised kuni kella 06.00-ni kuuluvad eelmise õhtu päeva alla.</p>
       )}
 
-      <label className="admin-label">Kaanefoto (kasutame edaspidi äpi
-        avavaates ja jagamispiltidel)</label>
+      <label className="admin-label">Kaanefoto (avastamisvaate kaart ja
+        jagamispildid)</label>
       {form.cover_image_url && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={form.cover_image_url} alt="Kaanefoto" className="admin-cover" />
@@ -173,8 +174,7 @@ export default function AdminEvent({ data, onChanged }) {
         kuupäevad paika, peida vana aasta kava ühe nupuga. Midagi ei
         kustutata: esinemised jäävad adminisse mustanditena alles ja
         esinejate profiilid (pildid, biod, lood) kehtivad edasi ka uuel
-        aastal. Uue aasta jaoks lisa kasvõi üks "TBA" esinemine, siis
-        on äpis midagi näha juba piletimüügi ajal.</p>
+        aastal.</p>
       {oldPublished.length > 0 ? (
         <div className="admin-actions">
           <button className="btn-secondary" disabled={busy} onClick={archiveOld}>

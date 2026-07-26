@@ -24,7 +24,7 @@ function Heart({ on }) {
   );
 }
 
-export default function ArtistDirectory({ data, locale }) {
+export default function ArtistDirectory({ data, locale, base }) {
   const tr = t(locale);
   const [query, setQuery] = useState('');
   const [byDay, setByDay] = useState(false);
@@ -82,7 +82,7 @@ export default function ArtistDirectory({ data, locale }) {
   });
 
   const row = (a) => (
-    <Link key={a.id} href={`/${locale}/esineja/${a.slug}`} className="dir-row">
+    <Link key={a.id} href={`${base}/esineja/${a.slug}`} className="dir-row">
       {a.image_url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={a.image_url} alt="" className="dir-photo" />
@@ -158,6 +158,7 @@ export default function ArtistDirectory({ data, locale }) {
 
       {pendingFav && (
         <SignInSheet
+          base={base}
           locale={locale}
           onLater={signInLater}
           onClose={() => setPendingFav(null)}

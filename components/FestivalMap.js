@@ -9,34 +9,32 @@ import Link from 'next/link';
 import { t } from '../lib/i18n';
 import { stageMapPoint } from '../lib/schedule';
 
-const MAPS = [
-  { key: 'festival', src: '/kaardid/festival.png', et: 'Festival', en: 'Festival' },
-  { key: 'orissaare', src: '/kaardid/orissaare.png', et: 'Orissaare', en: 'Orissaare' },
-  { key: 'toiduala', src: '/kaardid/toiduala.png', et: 'Toiduala', en: 'Food court' },
-  { key: 'glamping', src: '/kaardid/glamping.png', et: 'Glämping', en: 'Glamping' }
-];
-
-export default function FestivalMap({ stages, locale }) {
+export default function FestivalMap({ stages, maps, locale, base }) {
   const tr = t(locale);
-  const [tab, setTab] = useState('festival');
+  const [tab, setTab] = useState(null);
   const [zoom, setZoom] = useState(false);
   const [openStage, setOpenStage] = useState(null); // valitud punkt
 
-  const current = MAPS.find((m) => m.key === tab);
-  const points = tab === 'festival'
-    ? stages.map((s) => ({ s, p: stageMapPoint(s) })).filter((x) => x.p)
-    : [];
+  if (!maps?.length) {
+    return <div className="notice"><p>{tr.no_data_body}</p></div>;
+  }
+  const current = maps.find((m) => m.id === tab) || maps[0];
+  // Punktid näidatakse kaardil, mille külge ala on adminis pandud
+  const points = stages
+    .filter((s) => s.map_id === current.id)
+    .map((s) => ({ s, p: stageMapPoint(s) }))
+    .filter((x) => x.p);
 
   return (
     <>
       <div className="map-tabs">
-        {MAPS.map((m) => (
+        {maps.map((m) => (
           <button
-            key={m.key}
-            className={`chip ${tab === m.key ? 'chip-on' : ''}`}
-            onClick={() => { setTab(m.key); setOpenStage(null); }}
+            key={m.id}
+            className={`chip ${current.id === m.id ? 'chip-on' : ''}`}
+            onClick={() => { setTab(m.id); setOpenStage(null); }}
           >
-            {locale === 'en' ? m.en : m.et}
+            {locale === 'en' ? m.title_en : m.title_et}
           </button>
         ))}
       </div>
@@ -44,7 +42,7 @@ export default function FestivalMap({ stages, locale }) {
       <div className={`map-viewport ${zoom ? 'zoomed' : ''}`}>
         <div className="map-inner">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={current.src} alt={locale === 'en' ? current.en : current.et} className="map-img" />
+          <img src={current.image_url} alt={locale === 'en' ? current.title_en : current.title_et} className="map-img" />
           {points.map(({ s, p }) => (
             <button
               key={s.id}
@@ -68,7 +66,7 @@ export default function FestivalMap({ stages, locale }) {
                 <span className="map-popup-name">
                   {locale === 'en' ? openStage.name_en : openStage.name_et}
                 </span>
-                <Link href={`/${locale}/ala/${openStage.slug}`} className="map-popup-link">
+                <Link href={`${base}/ala/${openStage.slug}`} className="map-popup-link">
                   {tr.stage_page} ›
                 </Link>
               </div>
@@ -83,7 +81,7 @@ export default function FestivalMap({ stages, locale }) {
         </button>
         <a
           className="btn-secondary map-action"
-          href={current.src}
+          href={current.image_url}
           target="_blank"
           rel="noopener noreferrer"
         >

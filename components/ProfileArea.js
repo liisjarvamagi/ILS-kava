@@ -11,7 +11,8 @@ import { mergeScheduleWithAccount, markNudgeSeen } from '../lib/mySchedule';
 import { mergeFavsWithAccount } from '../lib/favArtists';
 import SignIn from './SignIn';
 
-export default function ProfileArea({ locale, authReady }) {
+export default function ProfileArea({ locale, base, eventSlug, authReady }) {
+  const [eventId, setEventId] = useState(null);
   const tr = t(locale);
   const [checking, setChecking] = useState(authReady); // sessiooni kontroll käib
   const [user, setUser] = useState(null);
@@ -38,21 +39,28 @@ export default function ProfileArea({ locale, authReady }) {
         const count = await mergeScheduleWithAccount();
         if (count !== null) setSavedCount(count);
         await mergeFavsWithAccount();
-        // hommikukirja eelistus profiilist
-        const { data } = await supabase.from('profiles')
-          .select('wants_daily_email, daily_email_hour')
-          .eq('id', session.user.id)
-          .single();
-        if (data) {
-          setWantsEmail(Boolean(data.wants_daily_email));
-          setEmailHour(data.daily_email_hour ?? null);
+        // hommikukirja tellimus on sündmusepõhine: rida tabelis
+        // event_email_prefs = "tellin SELLE sündmuse kirju"
+        const { data: ev } = await supabase.from('events')
+          .select('id').eq('slug', eventSlug).maybeSingle();
+        if (ev) {
+          setEventId(ev.id);
+          const { data: pref } = await supabase.from('event_email_prefs')
+            .select('send_hour')
+            .eq('user_id', session.user.id)
+            .eq('event_id', ev.id)
+            .maybeSingle();
+          setWantsEmail(Boolean(pref));
+          setEmailHour(pref?.send_hour ?? null);
         }
-        // kas kasutaja on admin → näita adminipaneeli linki
-        const { data: adminRow } = await supabase.from('admins')
-          .select('user_id')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-        setIsAdmin(Boolean(adminRow));
+        // kas kasutaja on mõne sündmuse admin → näita adminipaneeli linki
+        const [{ data: adminRow }, { data: platRow }] = await Promise.all([
+          supabase.from('event_admins').select('event_id')
+            .eq('user_id', session.user.id).limit(1).maybeSingle(),
+          supabase.from('platform_admins').select('user_id')
+            .eq('user_id', session.user.id).maybeSingle()
+        ]);
+        setIsAdmin(Boolean(adminRow || platRow));
       }
     }
 
@@ -66,13 +74,16 @@ export default function ProfileArea({ locale, authReady }) {
 
   async function toggleDailyEmail() {
     const supabase = supabaseBrowser();
-    if (!supabase || !user) return;
+    if (!supabase || !user || !eventId) return;
     const next = !wantsEmail;
     setWantsEmail(next); // kohe nähtav, andmebaas järgi
-    const { error } = await supabase.from('profiles')
-      .update({ wants_daily_email: next })
-      .eq('id', user.id);
+    const { error } = next
+      ? await supabase.from('event_email_prefs')
+          .upsert({ user_id: user.id, event_id: eventId })
+      : await supabase.from('event_email_prefs')
+          .delete().eq('user_id', user.id).eq('event_id', eventId);
     if (error) setWantsEmail(!next); // ei õnnestunud → võta tagasi
+    if (!next) setEmailHour(null);
   }
 
   async function changeEmailHour(value) {
@@ -81,9 +92,9 @@ export default function ProfileArea({ locale, authReady }) {
     const next = value === '' ? null : Number(value);
     const prev = emailHour;
     setEmailHour(next); // kohe nähtav, andmebaas järgi
-    const { error } = await supabase.from('profiles')
-      .update({ daily_email_hour: next })
-      .eq('id', user.id);
+    const { error } = await supabase.from('event_email_prefs')
+      .update({ send_hour: next })
+      .eq('user_id', user.id).eq('event_id', eventId);
     if (error) setEmailHour(prev); // ei õnnestunud → võta tagasi
   }
 
@@ -96,7 +107,7 @@ export default function ProfileArea({ locale, authReady }) {
 
   if (checking) return null;
 
-  if (!user) return <SignIn locale={locale} authReady={authReady} />;
+  if (!user) return <SignIn locale={locale} base={base} authReady={authReady} />;
 
   return (
     <div className="signin">

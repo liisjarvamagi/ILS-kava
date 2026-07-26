@@ -8,7 +8,7 @@ import { supabaseBrowser } from '../../lib/supabaseClient';
 import TolkeNupp from './TolkeNupp';
 import { markDirty, clearDirty } from './dirty';
 
-export default function AdminEmails() {
+export default function AdminEmails({ eventId }) {
   const [tpl, setTpl] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
@@ -18,10 +18,11 @@ export default function AdminEmails() {
     (async () => {
       const supabase = supabaseBrowser();
       const { data } = await supabase.from('email_templates')
-        .select('*').eq('key', 'daily_schedule').maybeSingle();
+        .select('*').eq('event_id', eventId)
+        .eq('key', 'daily_schedule').maybeSingle();
       setTpl(data || false);
     })();
-  }, []);
+  }, [eventId]);
 
   function set(patch) { markDirty(); setTpl((t) => ({ ...t, ...patch })); }
 
@@ -38,7 +39,7 @@ export default function AdminEmails() {
       subject_et: tpl.subject_et, subject_en: tpl.subject_en,
       body_et: tpl.body_et, body_en: tpl.body_en,
       send_hour: Number(tpl.send_hour ?? 9)
-    }).eq('key', 'daily_schedule');
+    }).eq('event_id', eventId).eq('key', 'daily_schedule');
     if (tpl.updated_at) q = q.eq('updated_at', tpl.updated_at);
     const { data, error } = await q.select('updated_at');
     setBusy(false);
@@ -68,7 +69,7 @@ export default function AdminEmails() {
         Authorization: `Bearer ${session.access_token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ to: to || null })
+      body: JSON.stringify({ to: to || null, event_id: eventId })
     });
     const body = await res.json().catch(() => ({}));
     setBusy(false);

@@ -22,9 +22,15 @@ export async function POST(request) {
   });
   const { data: { user } } = await userClient.auth.getUser(token);
   if (!user) return NextResponse.json({ error: 'Sisselogimata' }, { status: 401 });
-  const { data: adminRow } = await userClient
-    .from('admins').select('user_id').eq('user_id', user.id).maybeSingle();
-  if (!adminRow) return NextResponse.json({ error: 'Pole admin' }, { status: 403 });
+  const [{ data: eaRow }, { data: paRow }] = await Promise.all([
+    userClient.from('event_admins').select('event_id')
+      .eq('user_id', user.id).limit(1).maybeSingle(),
+    userClient.from('platform_admins').select('user_id')
+      .eq('user_id', user.id).maybeSingle()
+  ]);
+  if (!eaRow && !paRow) {
+    return NextResponse.json({ error: 'Pole admin' }, { status: 403 });
+  }
 
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {

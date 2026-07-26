@@ -84,6 +84,7 @@ export default function AdminArtists({ data, onChanged }) {
       if (v) links[k] = v;
     }
     const payload = {
+      event_id: data.eventId,
       name: form.name.trim(),
       slug: form.slug.trim() || slugify(form.name),
       country: form.country.trim() || null,

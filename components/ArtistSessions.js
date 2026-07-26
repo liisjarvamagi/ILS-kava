@@ -5,7 +5,7 @@ import { t } from '../lib/i18n';
 import { perfTitle, fmtTime, dayLabel } from '../lib/schedule';
 import ActCard from './ActCard';
 
-export default function ArtistSessions({ performances, stages, locale }) {
+export default function ArtistSessions({ performances, stages, locale, base }) {
   const tr = t(locale);
   const stageById = Object.fromEntries(stages.map((s) => [s.id, s]));
   const sorted = performances
@@ -25,6 +25,7 @@ export default function ArtistSessions({ performances, stages, locale }) {
             timeLabel={`${fmtTime(p.start_at)} – ${fmtTime(p.end_at)} • ${dayLabel(p.festival_day, locale)} · ${stageName}`}
             color={s?.color || 'var(--muted)'}
             locale={locale}
+            base={base}
           />
         );
       })}

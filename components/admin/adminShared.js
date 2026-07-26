@@ -124,27 +124,64 @@ export async function revalidatePublic() {
   } catch {}
 }
 
-// Lae kõik admini andmed ühe korraga (ka mustandid — RLS lubab
-// adminil neid näha, tavakasutajal mitte).
-export async function loadAdminData() {
+// Millised sündmused on selle kasutaja hallata? (platvormi omanik
+// näeb kõiki). Tagastab { events, isPlatform }.
+export async function myAdminEvents() {
   const supabase = supabaseBrowser();
   if (!supabase) return null;
-  const [stages, artists, perfs, tags, info, settings] = await Promise.all([
-    supabase.from('stages').select('*').order('sort_order'),
-    supabase.from('artists').select('*').order('name'),
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { events: [], isPlatform: false, signedOut: true };
+  const [{ data: platRow }, { data: adminRows }] = await Promise.all([
+    supabase.from('platform_admins').select('user_id')
+      .eq('user_id', session.user.id).maybeSingle(),
+    supabase.from('event_admins').select('event_id, role')
+      .eq('user_id', session.user.id)
+  ]);
+  const isPlatform = Boolean(platRow);
+  let q = supabase.from('events')
+    .select('id, slug, name, starts_on, ends_on, is_public, is_active, plan, organization_id, cover_image_url, tickets_url, rules_url, updated_at')
+    .order('starts_on', { ascending: false });
+  if (!isPlatform) {
+    const ids = (adminRows || []).map((r) => r.event_id);
+    if (!ids.length) return { events: [], isPlatform: false };
+    q = q.in('id', ids);
+  }
+  const { data: events } = await q;
+  const roleById = Object.fromEntries((adminRows || []).map((r) => [r.event_id, r.role]));
+  return {
+    events: (events || []).map((e) => ({ ...e, myRole: roleById[e.id] || (isPlatform ? 'peakasutaja' : null) })),
+    isPlatform
+  };
+}
+
+// Lae ÜHE sündmuse admini andmed (ka mustandid — RLS lubab selle
+// sündmuse adminil neid näha, võõral ja tavakasutajal mitte).
+export async function loadAdminData(event) {
+  const supabase = supabaseBrowser();
+  if (!supabase || !event?.id) return null;
+  const eid = event.id;
+  const [stages, artists, perfs, tags, info, maps] = await Promise.all([
+    supabase.from('stages').select('*').eq('event_id', eid).order('sort_order'),
+    supabase.from('artists').select('*').eq('event_id', eid).order('name'),
     supabase.from('performances')
       .select('*, performance_artists(artist_id, sort_order), performance_tags(tag_id)')
+      .eq('event_id', eid)
       .order('start_at'),
-    supabase.from('tags').select('*').order('name_et'),
-    supabase.from('event_info').select('*').order('sort_order'),
-    supabase.from('event_settings').select('*').eq('id', 1).maybeSingle()
+    supabase.from('tags').select('*').eq('event_id', eid).order('name_et'),
+    supabase.from('event_info').select('*').eq('event_id', eid).order('sort_order'),
+    supabase.from('event_maps').select('*').eq('event_id', eid).order('sort_order')
   ]);
   return {
+    event,
+    eventId: eid,
     stages: stages.data || [],
     artists: artists.data || [],
     performances: perfs.data || [],
     tags: tags.data || [],
     info: info.data || [],
-    settings: settings.data || null // null = 0011 SQL veel tegemata
+    maps: maps.data || [],
+    // festivalDays() ja vormid loevad kuupäevi siit — sama kuju,
+    // mis vanal event_settings tabelil
+    settings: { starts_on: event.starts_on, ends_on: event.ends_on }
   };
 }

@@ -12,7 +12,7 @@ import { IconBookmark } from './Icons';
 // onRemoved: kui see on antud, ei näita kaart eemaldamise teadet ise,
 // vaid annab selle lehele. Vajalik Minu kava lehel, kus kaart kaob
 // eemaldamisel kohe ekraanilt ja teade peab jääma lehe hoolde.
-export default function ActCard({ perf, title, timeLabel, color, locale, onChange, onRemoved }) {
+export default function ActCard({ perf, title, timeLabel, color, locale, base, onChange, onRemoved }) {
   const tr = t(locale);
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState(null); // { text, undoId } | null
@@ -46,7 +46,7 @@ export default function ActCard({ perf, title, timeLabel, color, locale, onChang
   return (
     <>
       <div className={`act ${perf.is_background ? 'act-bg' : ''}`} style={{ borderLeftColor: color }}>
-        <Link href={`/${locale}/esinemine/${perf.id}`} className="act-main">
+        <Link href={`${base}/esinemine/${perf.id}`} className="act-main">
           <div className="act-time">{timeLabel}</div>
           <div className="act-name">{title}</div>
           {tags.length > 0 && (

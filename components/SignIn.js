@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { t } from '../lib/i18n';
 import { supabaseBrowser } from '../lib/supabaseClient';
 
-export default function SignIn({ locale, authReady }) {
+export default function SignIn({ locale, base, redirectPath, authReady }) {
   const tr = t(locale);
   const [email, setEmail] = useState('');
   const [error, setError] = useState(null);
@@ -18,7 +18,7 @@ export default function SignIn({ locale, authReady }) {
   const [busy, setBusy] = useState(false);
 
   const redirectTo = () =>
-    `${window.location.origin}/${locale}/profiil`;
+    `${window.location.origin}${redirectPath || `${base || `/${locale}`}/profiil`}`;
 
   async function submitEmail(e) {
     e.preventDefault();

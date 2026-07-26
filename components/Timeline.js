@@ -28,7 +28,7 @@ function assignLanes(perfs) {
   });
 }
 
-export default function Timeline({ stages, perfs, locale, scale = 100, density = 'detailed', onMyChange }) {
+export default function Timeline({ stages, perfs, locale, base, scale = 100, density = 'detailed', onMyChange }) {
   const tr = t(locale);
   const [myIds, setMyIds] = useState([]);
   const [removedId, setRemovedId] = useState(null);
@@ -124,7 +124,7 @@ export default function Timeline({ stages, perfs, locale, scale = 100, density =
               <div className="tl-label">
                 <span className="stage-dot" style={{ background: stage.color }} />
                 <span className="tl-label-name">{locale === 'en' ? stage.name_en : stage.name_et}</span>
-                <Link href={`/${locale}/ala/${stage.slug}`} className="tl-label-more">
+                <Link href={`${base}/ala/${stage.slug}`} className="tl-label-more">
                   {tr.stage_more}
                 </Link>
               </div>
@@ -136,7 +136,7 @@ export default function Timeline({ stages, perfs, locale, scale = 100, density =
                 return (
                   <Link
                     key={perf.id}
-                    href={`/${locale}/esinemine/${perf.id}`}
+                    href={`${base}/esinemine/${perf.id}`}
                     className={`tl-block ${perf.is_background ? 'tl-bg' : ''} ${saved ? 'tl-saved' : ''}`}
                     style={{
                       left,

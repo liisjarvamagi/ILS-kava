@@ -195,6 +195,7 @@ export default function AdminPlanner({ data, onChanged }) {
     setBusy(true); setMsg(null);
     const supabase = supabaseBrowser();
     const payload = {
+      event_id: data.eventId,
       stage_id: pp.stage_id, festival_day: day, start_at, end_at,
       title_et: pp.title_et.trim() || null,
       is_published: pp.is_published

@@ -61,6 +61,20 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 /* Tõlkenupp kakskeelsete väljade all */
 .tolke { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .tolke-err { font-size: 12px; color: #e08585; }
+/* Sündmuse valik admini päise all */
+.admin-eventpick {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 10px 16px 0;
+}
+.admin-eventpick-label { color: var(--muted); font-size: 13px; }
+/* Taotluse kaart platvormi vaates */
+.admin-subcard { margin: 10px 0; padding: 14px; }
+.admin-badge-ok { background: #1d3b2a; color: #7fd6a0; }
+.admin-check-block { display: block; font-size: 13px; line-height: 1.5; }
+.admin-thumb {
+  width: 56px; height: 42px; object-fit: cover;
+  border-radius: 8px; border: 1px solid var(--border);
+}
 /* Alapealkiri admini kaardi sees */
 .admin-subhead {
   margin-top: 26px;
@@ -77,6 +91,64 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   border: 1px solid var(--border);
   margin: 8px 0;
 }
+/* ── Avastamisvaade (platvormi avaleht) ── */
+.discover { padding: 8px 16px 40px; max-width: 720px; margin: 0 auto; }
+.discover-intro { color: var(--muted); font-size: 14px; margin-bottom: 18px; line-height: 1.5; }
+.discover-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.discover-solo { display: block; }
+.discover-card {
+  display: block;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.discover-card:active { transform: scale(0.99); }
+.discover-cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--surface3);
+}
+.discover-cover-empty {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 42px;
+}
+.discover-solo .discover-cover { aspect-ratio: 4 / 3; }
+.discover-card-body { padding: 14px; }
+.discover-card-name { font-weight: 700; font-size: 17px; }
+.discover-card-dates { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.discover-footer { color: var(--muted); font-size: 12px; margin-top: 28px; text-align: center; }
+
+/* Tingimuste leht ja kiirjuhend */
+.terms h2 { font-size: 16px; margin: 22px 0 8px; }
+.terms p { color: var(--muted); line-height: 1.65; font-size: 14px; margin-bottom: 10px; }
+.apply-consent { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 4px 0 8px; }
+.admin-quickstart { text-align: left; }
+.admin-quickstart ol { padding-left: 20px; margin-top: 8px; line-height: 1.7; }
+/* ── Korraldaja taotlus ── */
+.apply-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 16px;
+  max-width: 520px;
+}
+.apply-steps { display: flex; gap: 14px; margin-bottom: 16px; }
+.apply-steps span { color: var(--muted); font-size: 13px; font-weight: 600; }
+.apply-steps span.on { color: var(--accent); }
+.apply-field { display: block; margin-bottom: 12px; font-size: 13px; color: var(--muted); }
+.apply-field input {
+  display: block; width: 100%; margin-top: 5px;
+  background: var(--surface3); color: var(--text);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 11px 12px; font: inherit;
+}
+.apply-field small { display: block; margin-top: 4px; font-size: 11px; line-height: 1.4; }
+.apply-btn { width: 100%; margin-top: 6px; }
+.apply-actions { display: flex; gap: 10px; }
+.apply-list { padding-left: 20px; line-height: 1.7; font-size: 14px; margin-bottom: 16px; }
 /* Klõpsatav link info kaardi tekstis */
 .info-card-link {
   color: var(--accent);

@@ -108,6 +108,7 @@ export default function AdminPerformances({ data, onChanged }) {
     setBusy(true); setMsg(null);
     const { start_at, end_at } = timesToIso(form.festival_day, form.startTime, form.endTime);
     const payload = {
+      event_id: data.eventId,
       stage_id: form.stage_id,
       festival_day: form.festival_day,
       start_at, end_at,
@@ -180,7 +181,7 @@ export default function AdminPerformances({ data, onChanged }) {
     if (name.length < 2) return;
     const supabase = supabaseBrowser();
     const { data: row, error } = await supabase.from('artists')
-      .insert({ slug: slugify(name), name })
+      .insert({ slug: slugify(name), name, event_id: data.eventId })
       .select('id')
       .single();
     if (error) { setMsg('Esineja loomine ebaõnnestus: ' + error.message); return; }

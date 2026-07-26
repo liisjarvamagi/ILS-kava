@@ -7,7 +7,7 @@
 import Link from 'next/link';
 import { t } from '../lib/i18n';
 
-export default function SignInSheet({ locale, onLater, onClose }) {
+export default function SignInSheet({ locale, base, onLater, onClose }) {
   const tr = t(locale);
   return (
     <div className="sheet-backdrop" onClick={onClose}>
@@ -17,10 +17,10 @@ export default function SignInSheet({ locale, onLater, onClose }) {
         <h2 className="signin-sheet-title">{tr.signin_sheet_title}</h2>
         <p className="signin-sheet-body">{tr.signin_sheet_body}</p>
 
-        <Link href={`/${locale}/profiil`} className="btn-primary signin-sheet-btn">
+        <Link href={`${base}/profiil`} className="btn-primary signin-sheet-btn">
           {tr.signin_continue_google}
         </Link>
-        <Link href={`/${locale}/profiil`} className="btn-secondary signin-sheet-btn">
+        <Link href={`${base}/profiil`} className="btn-secondary signin-sheet-btn">
           ✉️ {tr.signin_continue_email}
         </Link>
 

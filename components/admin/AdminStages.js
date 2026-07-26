@@ -9,7 +9,7 @@ import { markDirty, clearDirty, isDirty, DIRTY_MSG } from './dirty';
 
 const EMPTY = {
   id: null, slug: '', name_et: '', name_en: '', descr_et: '', descr_en: '',
-  color: '#7aab9a', sort_order: 0, lat: '', lng: '', map_x: '', map_y: '',
+  color: '#7aab9a', sort_order: 0, lat: '', lng: '', map_x: '', map_y: '', map_id: '',
   is_active: true
 };
 
@@ -27,7 +27,7 @@ export default function AdminStages({ data, onChanged }) {
       descr_et: s.descr_et || '', descr_en: s.descr_en || '',
       color: s.color || '#7aab9a', sort_order: s.sort_order ?? 0,
       lat: s.lat ?? '', lng: s.lng ?? '',
-      map_x: s.map_x ?? '', map_y: s.map_y ?? '', is_active: s.is_active,
+      map_x: s.map_x ?? '', map_y: s.map_y ?? '', map_id: s.map_id || '', is_active: s.is_active,
       updated_at: s.updated_at || null // üle kirjutamise kaitse
     });
     clearDirty(); // avatud kirje on nüüd puhas lähtepunkt
@@ -48,6 +48,7 @@ export default function AdminStages({ data, onChanged }) {
     setBusy(true); setMsg(null);
     const supabase = supabaseBrowser();
     const payload = {
+      event_id: data.eventId,
       slug: form.slug.trim() || slugify(form.name_et),
       name_et: form.name_et.trim(),
       name_en: form.name_en.trim() || form.name_et.trim(),
@@ -58,6 +59,7 @@ export default function AdminStages({ data, onChanged }) {
       lat, lng,
       map_x: form.map_x === '' ? null : Number(form.map_x),
       map_y: form.map_y === '' ? null : Number(form.map_y),
+      map_id: form.map_id || null,
       is_active: form.is_active
     };
     let errText = null;
@@ -161,31 +163,55 @@ export default function AdminStages({ data, onChanged }) {
             <input value={form.lng} onChange={(e) => set({ lng: e.target.value })} />
           </label>
         </div>
-        <label className="admin-label">Koht festivalikaardil — klõpsa kaardil
-          õigele kohale, punkt liigub sinna. Seda kohta näidatakse Kaardi
-          vaates ja sündmuse lehe kaardiväljavõttel.</label>
-        <div
-          className="admin-mappick"
-          onClick={(e) => {
-            const r = e.currentTarget.getBoundingClientRect();
-            set({
-              map_x: (((e.clientX - r.left) / r.width) * 100).toFixed(1),
-              map_y: (((e.clientY - r.top) / r.height) * 100).toFixed(1)
-            });
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/kaardid/festival.png" alt="Festivali kaart" draggable={false} />
-          {form.map_x !== '' && form.map_y !== '' && (
-            <span
-              className="admin-mappick-dot"
-              style={{ left: `${form.map_x}%`, top: `${form.map_y}%`, background: form.color }}
-            />
-          )}
-        </div>
+        <label className="admin-label">Koht kaardil — vali kaart ja
+          klõpsa õigele kohale, punkt liigub sinna. Seda kohta näidatakse
+          Kaardi vaates ja sündmuse lehe kaardiväljavõttel. Kaarte lisad
+          Kaardid sakis.</label>
+        {data.maps.length === 0 && (
+          <p className="admin-hint">Sündmusel pole veel ühtegi kaarti —
+            lae kaardipilt üles Kaardid sakis, siis saab ala punkti peale
+            panna.</p>
+        )}
+        {data.maps.length > 1 && (
+          <div className="admin-chips">
+            {data.maps.map((m) => (
+              <button key={m.id} type="button"
+                className={`admin-chip ${(form.map_id || data.maps[0].id) === m.id ? 'on' : ''}`}
+                onClick={() => set({ map_id: m.id, map_x: '', map_y: '' })}>
+                {m.title_et}
+              </button>
+            ))}
+          </div>
+        )}
+        {(() => {
+          const activeMap = data.maps.find((m) => m.id === form.map_id) || data.maps[0];
+          if (!activeMap) return null;
+          return (
+            <div
+              className="admin-mappick"
+              onClick={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                set({
+                  map_id: activeMap.id,
+                  map_x: (((e.clientX - r.left) / r.width) * 100).toFixed(1),
+                  map_y: (((e.clientY - r.top) / r.height) * 100).toFixed(1)
+                });
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={activeMap.image_url} alt={activeMap.title_et} draggable={false} />
+              {form.map_x !== '' && form.map_y !== '' && (
+                <span
+                  className="admin-mappick-dot"
+                  style={{ left: `${form.map_x}%`, top: `${form.map_y}%`, background: form.color }}
+                />
+              )}
+            </div>
+          );
+        })()}
         {form.map_x !== '' && (
           <div className="admin-actions">
-            <button className="admin-mini" onClick={() => set({ map_x: '', map_y: '' })}>
+            <button className="admin-mini" onClick={() => set({ map_x: '', map_y: '', map_id: '' })}>
               Eemalda kaardipunkt
             </button>
           </div>

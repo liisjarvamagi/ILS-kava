@@ -151,12 +151,12 @@ export default function AdminImport({ data, onChanged }) {
       const newTagNames = [...new Set(good.flatMap((it) => it.newTags))];
       for (const name of newArtistNames) {
         const { data: row } = await supabase.from('artists')
-          .insert({ slug: slugify(name), name }).select('id').single();
+          .insert({ slug: slugify(name), name, event_id: data.eventId }).select('id').single();
         if (row) artistIdByName.set(name.toLowerCase(), row.id);
       }
       for (const name of newTagNames) {
         const { data: row } = await supabase.from('tags')
-          .insert({ slug: slugify(name), name_et: name, name_en: name }).select('id').single();
+          .insert({ slug: slugify(name), name_et: name, name_en: name, event_id: data.eventId }).select('id').single();
         if (row) tagIdByName.set(name.toLowerCase(), row.id);
       }
       // 2. esinemised
@@ -164,6 +164,7 @@ export default function AdminImport({ data, onChanged }) {
         const { o, stage } = it;
         const { start_at, end_at } = timesToIso(o.paev, o.algus, o.lopp);
         const { data: perf, error } = await supabase.from('performances').insert({
+          event_id: data.eventId,
           stage_id: stage.id,
           festival_day: o.paev,
           start_at, end_at,
@@ -210,6 +211,7 @@ export default function AdminImport({ data, onChanged }) {
           ({ error } = await supabase.from('artists').update(patch).eq('id', existing.id));
         } else {
           ({ error } = await supabase.from('artists').insert({
+            event_id: data.eventId,
             slug: slugify(o.nimi), name: o.nimi.trim(), links, ...patch
           }));
         }

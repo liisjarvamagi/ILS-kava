@@ -40,6 +40,7 @@ export default function AdminInfo({ data, onChanged }) {
     setBusy(true); setMsg(null);
     const supabase = supabaseBrowser();
     const payload = {
+      event_id: data.eventId,
       icon: form.icon.trim() || 'ℹ️',
       title_et: form.title_et.trim(),
       title_en: form.title_en.trim() || form.title_et.trim(),

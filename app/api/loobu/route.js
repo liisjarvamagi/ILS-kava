@@ -21,18 +21,21 @@ a{color:#e8c264;font-weight:700}</style></head>
 
 export async function GET(request) {
   const token = new URL(request.url).searchParams.get('token');
-  const userId = verifyUnsubscribe(token);
-  if (!userId) {
+  const ok = verifyUnsubscribe(token);
+  if (!ok) {
     return page('Link ei kehti',
       'See loobumislink on aegunud või vigane. Saad hommikukirja välja lülitada ka äpi profiililehelt.');
   }
   const supabase = serviceClient();
   if (!supabase) return page('Viga', 'Server on seadistamata.');
 
-  await supabase.from('profiles')
-    .update({ wants_daily_email: false })
-    .eq('id', userId);
+  // Loobumine on sündmusepõhine: kustub AINULT selle sündmuse
+  // tellimus, teiste festivalide kirjad jäävad alles
+  await supabase.from('event_email_prefs')
+    .delete()
+    .eq('user_id', ok.userId)
+    .eq('event_id', ok.eventId);
 
-  return page('Hommikukirjad on välja lülitatud ✅',
-    'Rohkem kirju ei tule. Kui mõtled ümber, saad need äpi profiililehelt uuesti sisse lülitada.');
+  return page('Selle sündmuse hommikukirjad on välja lülitatud ✅',
+    'Rohkem selle sündmuse kirju ei tule. Kui mõtled ümber, saad need äpi profiililehelt uuesti sisse lülitada.');
 }

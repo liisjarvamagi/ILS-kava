@@ -18,14 +18,19 @@ import FilterSheet from './FilterSheet';
 import SettingsSheet from './SettingsSheet';
 import { IconSettings } from './Icons';
 
-const KEYS = {
-  stages: 'ils_stage_filter_v1',
-  tags: 'ils_tag_filter_v1',
-  artists: 'ils_artist_filter_v1',
-  view: 'ils_view_v1',
-  scale: 'ils_scale_v1',
-  density: 'ils_density_v1'
-};
+// Filtrid on sündmusepõhised (igal festivalil oma valikud),
+// vaate-eelistused (nimekiri/ajajoon, suurus) on üleüldised.
+function keysFor(eventSlug) {
+  const e = eventSlug || 'ils';
+  return {
+    stages: `ils_stage_filter_v1:${e}`,
+    tags: `ils_tag_filter_v1:${e}`,
+    artists: `ils_artist_filter_v1:${e}`,
+    view: 'ils_view_v1',
+    scale: 'ils_scale_v1',
+    density: 'ils_density_v1'
+  };
+}
 
 function readJson(key, fallback) {
   try {
@@ -34,7 +39,8 @@ function readJson(key, fallback) {
   } catch { return fallback; }
 }
 
-export default function ScheduleView({ stages, performances, locale }) {
+export default function ScheduleView({ stages, performances, locale, base, eventSlug }) {
+  const KEYS = useMemo(() => keysFor(eventSlug), [eventSlug]);
   const tr = t(locale);
   const days = useMemo(() => festivalDays(performances), [performances]);
   const [day, setDay] = useState(days[0]);
@@ -191,6 +197,7 @@ export default function ScheduleView({ stages, performances, locale }) {
 
       {view === 'timeline' ? (
         <Timeline
+          base={base}
           stages={visibleStages}
           perfs={visiblePerfs}
           locale={locale}
@@ -212,6 +219,7 @@ export default function ScheduleView({ stages, performances, locale }) {
               <div className="stage-slots">
                 {acts.map((p) => (
                   <ActCard
+                    base={base}
                     key={p.id}
                     perf={p}
                     title={perfTitle(p, locale)}

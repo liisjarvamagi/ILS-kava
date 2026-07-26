@@ -150,6 +150,52 @@ i-land-sound-ehitusplaan.md ja i-land-sound-tegevuskava-faas2.md.
    - `supabase/migrations/0011_syndmuse_seaded.sql` (sündmuse seaded:
      festivali kuupäevad, kaanefoto, piletite ja kodukorra lingid —
      admini Sündmus sakk)
+   - `supabase/migrations/0012_platvormi_vundament.sql` (platvormi
+     tükk A: korraldajate, sündmuste, adminite, kaartide ja
+     tellimuste tabelid; iga sisurida kuulub sündmusele; kõik
+     turvareeglid sündmusepõhised — korraldaja näeb ja muudab
+     AINULT oma sündmust; ILS-i andmed kolitud sündmuseks
+     'ils-2026'. Äpp töötab pärast seda muutmata kujul edasi,
+     kood läheb uuele mudelile üle tükis B)
+- Platvormi tükk B1 (avalik pool): avaleht on nüüd avastamisvaade
+  (sündmuste valik kaanefotodega), iga sündmuse äpp elab aadressil
+  /[syndmus]/[keel] (nt /ils-2026/et/kava). Vanad /et ja /en
+  aadressid suunatakse automaatselt ILS-i alla, järjehoidjad ei
+  lähe katki. Kaardileht näitab sündmuse enda kaarte (event_maps
+  tabelist), kava filtrid on sündmusepõhised, tundmatu sündmus
+  annab 404. NB! Kood eeldab, et 0012 SQL on käivitatud. Vana
+  kaust app/[locale] tuleb kustutada — asemel on
+  app/[syndmus]/[locale]
+- Platvormi tükk B2 (admin ja kirjad): admin töötab valitud sündmuse
+  piires (kui õigusi on mitmele, on üleval sündmuse valik; sündmuse
+  nimi on alati päises). Uued sakid: Meeskond (sündmuse adminite
+  haldus e-posti järgi, peakasutaja rollid) ja 🌍 Platvorm (ainult
+  platvormi omanikule: korraldajate taotlused registrikoodi
+  äriregistri lingiga, kinnitamine/tagasilükkamine, sündmuste
+  sisse-välja lülitid, paketid, tellijate arvud). Sündmus sakis on
+  nüüd ka "Avalik" lüliti — sündmus on väljas siis, kui NII
+  korraldaja KUI platvormi omanik on "jah" öelnud. Hommikukiri käib
+  sündmuste kaupa: tellimus, kellaaeg ja loobumislink on
+  sündmusepõhised, saatja käib igal tunnil läbi kõik elusad
+  sündmused. Vajalik SQL: 0013 (KÄIVITA ALLES PÄRAST git pushi ja
+  deploy lõppu — see koristab vanad tabelid, mida vana kood veel
+  vajab)
+- Platvormi tükk E (viimistlus): /tingimused leht (kasutustingimused
+  ja privaatsus lihtsas keeles, taotlusvorm viitab sellele), tühja
+  kava sõbralik olek piletite lingiga, kiirjuhend adminis uuele
+  tühjale sündmusele, lõplik turvaaudit (raport eraldi failis
+  sundmuskava-turvaaudit.md) ja paigaldusjuhend
+  (sundmuskava-paigaldusjuhend.md — SQL-ide õige järjekord!)
+- Platvormi tükid C ja D: /korraldajale on avalik taotlusleht —
+  korraldaja logib sisse, täidab kahesammulise vormi (organisatsioon
+  registrikoodiga, siis sündmus koos aadressiga) ja saab KOHE
+  adminipaneeli kava sisestama; avalikuks läheb sündmus pärast Sinu
+  kinnitust Platvormi sakis. Avastamisvaate jaluses on link
+  taotluslehele. Adminis on uus Kaardid sakk: korraldaja laeb oma
+  kaardipildid ise üles (pealkirjad ET/EN, järjekord, kustutamise
+  hoiatus punktide arvuga) ja Alad sakis klõpsitakse ala punkt
+  valitud kaardile — ILS-i 4 kaarti töötavad edasi, uued korraldajad
+  laevad omad
    - `supabase/seed.sql` (2026 päris kava: 17 ala, 171 esinemist)
    - `supabase/seed2_esinejad.sql` (teeb pealkirjadest 160 päris
      esinejat: muusikaaladel nimed, töötubadel juhendajad; TBA jms

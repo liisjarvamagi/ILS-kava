@@ -1,9 +1,10 @@
-// Hommikukirja saatja. Teda võib käivitada kasvõi iga tund (Verceli
-// cron + GitHub Actions) — iga kasutaja saab kirja siis, kui TEMA
-// kellaaeg on käes (profiili valik või korraldaja vaikimisi aeg),
-// ja ainult üks kord päevas (last_daily_sent tõke). Päring on
-// kaitstud CRON_SECRET päisega; vale saladus saab 401. Service role
-// võtit kasutatakse AINULT siin serveris.
+// Hommikukirja saatja — käib läbi KÕIK elusad sündmused. Iga
+// sündmuse tellija saab kirja siis, kui TEMA kellaaeg on käes
+// (isiklik valik või sündmuse vaikimisi aeg), ja ainult üks kord
+// päevas (last_sent tõke tellimuse real). Saatjat võib käivitada
+// kasvõi iga tund. Päring on kaitstud CRON_SECRET päisega.
+// Service role võtit kasutatakse AINULT siin serveris ja iga
+// päring on sündmuse järgi filtreeritud.
 import { NextResponse } from 'next/server';
 import {
   serviceClient, sendDailyTo, todayTallinn, hourTallinn, dueNow, publicAppUrl
@@ -27,38 +28,19 @@ export async function GET(request) {
   const nowHour = hourTallinn();
   const appUrl = publicAppUrl(new URL(request.url).origin);
 
-  // Kas täna on üldse festivalipäev? Kui kavas pole ühtegi tänast
-  // kirjet, ei saada kellelegi midagi.
-  const { count } = await supabase
-    .from('performances')
-    .select('id', { count: 'exact', head: true })
-    .eq('festival_day', day)
-    .eq('is_published', true);
-  if (!count) {
-    return NextResponse.json({ ok: true, day, sent: 0, note: 'täna pole festivalipäev' });
+  // Elusad sündmused, mille festival täna käib
+  const { data: events } = await supabase
+    .from('events')
+    .select('id, slug, name, starts_on, ends_on')
+    .eq('is_public', true)
+    .eq('is_active', true)
+    .lte('starts_on', day)
+    .gte('ends_on', day);
+  if (!events?.length) {
+    return NextResponse.json({ ok: true, day, sent: 0, note: 'täna pole ühtegi festivalipäeva' });
   }
 
-  // Korraldaja vaikimisi saatmistund mallist
-  const { data: tpl } = await supabase
-    .from('email_templates').select('send_hour').eq('key', 'daily_schedule').single();
-  const defaultHour = tpl?.send_hour ?? 9;
-
-  // Tellijad + nende e-postid (auth.users käib admin API kaudu)
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('id, locale, daily_email_hour, last_daily_sent')
-    .eq('wants_daily_email', true);
-  if (!profiles?.length) {
-    return NextResponse.json({ ok: true, day, sent: 0, note: 'tellijaid pole' });
-  }
-
-  // Ainult need, kelle kellaaeg on käes ja kes pole täna veel saanud
-  const due = profiles.filter((p) =>
-    dueNow(p.daily_email_hour, defaultHour, p.last_daily_sent, nowHour, day));
-  if (!due.length) {
-    return NextResponse.json({ ok: true, day, hour: nowHour, sent: 0, note: 'praegu pole kellegi kellaaeg' });
-  }
-
+  // Kasutajate e-postid üks kord (admin API)
   const emails = new Map();
   let page = 1;
   for (;;) {
@@ -69,24 +51,56 @@ export async function GET(request) {
     page++;
   }
 
-  let sent = 0, skipped = 0, failed = 0;
-  let lastError = null;
-  for (const p of due) {
-    const email = emails.get(p.id);
-    if (!email) { skipped++; continue; }
-    const r = await sendDailyTo(supabase, { id: p.id, email, locale: p.locale }, day, appUrl);
-    if (r.status === 'sent' || r.status === 'skip') {
-      // märgime tänase tehtuks ka tühja kava puhul — muidu prooviks
-      // saatja sama kasutajat igal tunnil uuesti
-      await supabase.from('profiles')
-        .update({ last_daily_sent: day }).eq('id', p.id);
-      if (r.status === 'sent') sent++; else skipped++;
-    } else {
-      failed++;
-      lastError = r.error || lastError;
-      // last_daily_sent jääb vanaks → järgmine tund proovib uuesti
+  const summary = [];
+  for (const event of events) {
+    // Kas sellel sündmusel on täna avaldatud kava?
+    const { count } = await supabase
+      .from('performances')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', event.id)
+      .eq('festival_day', day)
+      .eq('is_published', true);
+    if (!count) { summary.push({ event: event.slug, note: 'tühi päev' }); continue; }
+
+    const { data: tpl } = await supabase
+      .from('email_templates').select('send_hour')
+      .eq('event_id', event.id).eq('key', 'daily_schedule').maybeSingle();
+    const defaultHour = tpl?.send_hour ?? 9;
+
+    const { data: prefs } = await supabase
+      .from('event_email_prefs')
+      .select('user_id, send_hour, last_sent')
+      .eq('event_id', event.id);
+    const due = (prefs || []).filter((p) =>
+      dueNow(p.send_hour, defaultHour, p.last_sent, nowHour, day));
+    if (!due.length) { summary.push({ event: event.slug, note: 'kellegi aeg pole käes' }); continue; }
+
+    // Keel profiilist
+    const ids = due.map((p) => p.user_id);
+    const { data: profs } = await supabase
+      .from('profiles').select('id, locale').in('id', ids);
+    const localeById = Object.fromEntries((profs || []).map((p) => [p.id, p.locale]));
+
+    let sent = 0, skipped = 0, failed = 0, lastError = null;
+    for (const p of due) {
+      const email = emails.get(p.user_id);
+      if (!email) { skipped++; continue; }
+      const r = await sendDailyTo(supabase,
+        { id: p.user_id, email, locale: localeById[p.user_id] }, event, day, appUrl);
+      if (r.status === 'sent' || r.status === 'skip') {
+        // märgime tänase tehtuks ka tühja kava puhul — muidu prooviks
+        // saatja sama kasutajat igal tunnil uuesti
+        await supabase.from('event_email_prefs')
+          .update({ last_sent: day })
+          .eq('user_id', p.user_id).eq('event_id', event.id);
+        if (r.status === 'sent') sent++; else skipped++;
+      } else {
+        failed++;
+        lastError = r.error || lastError;
+      }
     }
+    summary.push({ event: event.slug, sent, skipped, failed, error: lastError });
   }
 
-  return NextResponse.json({ ok: true, day, hour: nowHour, sent, skipped, failed, error: lastError });
+  return NextResponse.json({ ok: true, day, hour: nowHour, events: summary });
 }
