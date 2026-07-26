@@ -8,7 +8,7 @@
 // kava kohe.
 import { useMemo, useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
-import { isoToParts, timesToIso, slugify, revalidatePublic } from './adminShared';
+import { isoToParts, timesToIso, slugify, revalidatePublic, guardedUpdate, CONFLICT_MSG } from './adminShared';
 
 const EMPTY = {
   id: null, stage_id: '', festival_day: '2026-07-16',
@@ -49,7 +49,8 @@ export default function AdminPerformances({ data, onChanged }) {
       startTime: s.time, endTime: e.time,
       title_et: p.title_et || '', title_en: p.title_en || '',
       descr_et: p.descr_et || '', descr_en: p.descr_en || '',
-      is_background: p.is_background, is_published: p.is_published
+      is_background: p.is_background, is_published: p.is_published,
+      updated_at: p.updated_at || null // üle kirjutamise kaitse
     });
     setArtistIds(
       (p.performance_artists || [])
@@ -110,7 +111,15 @@ export default function AdminPerformances({ data, onChanged }) {
     let perfId = form.id;
     let error = null;
     if (perfId) {
-      ({ error } = await supabase.from('performances').update(payload).eq('id', perfId));
+      const r = await guardedUpdate(supabase, 'performances', perfId, form.updated_at, payload);
+      if (r.conflict) {
+        setBusy(false);
+        setMsg(CONFLICT_MSG);
+        await onChanged();
+        return;
+      }
+      error = r.error ? { message: r.error } : null;
+      if (r.ok) set({ updated_at: r.stamp });
     } else {
       const res = await supabase.from('performances').insert(payload).select('id').single();
       error = res.error;

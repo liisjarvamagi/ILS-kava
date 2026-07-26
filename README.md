@@ -73,6 +73,15 @@ i-land-sound-ehitusplaan.md ja i-land-sound-tegevuskava-faas2.md.
 - Massimuudatused (faas 2): Esinemised sakis saab linnukestega valida
   mitu esinemist korraga ning nihutada aegu, tõsta teisele päevale või
   alale, avaldada/peita ja kustutada ühe liigutusega
+- Mitme admini kaitse (faas 2): kõik salvestused käivad rea kaupa,
+  nii et eri kirjete muutmine üksteist ei sega. Kui kaks adminit
+  muudavad täpselt sama kirjet korraga, kontrollib salvestus rea
+  viimase muutmise ajatemplit: hilisem salvestaja saab hoiatuse
+  "keegi teine muutis seda vahepeal" ja midagi ei kirjutata üle.
+  Kaitse katab esinemised (vorm ja planeerija), esinejad, alad,
+  olulise info ja meilimalli. Massimuudatused töötavad värske
+  nimekirja pealt ja jäävad kaitseta — need on nagunii mõeldud
+  ühe inimese suureks korrastuseks
 - Kava planeerija (faas 2): kalendrivaade nagu Google Calendar — read
   on alad, aeg jookseb paremale. Plokki lohistad hiirega (aeg liigub
   5 min sammuga, teisele reale tõstes vahetub ala), paremast servast
@@ -109,6 +118,10 @@ i-land-sound-ehitusplaan.md ja i-land-sound-tegevuskava-faas2.md.
    - `supabase/migrations/0009_kirja_kellaaeg.sql` (hommikukirja
      kellaaeg: korraldaja vaikimisi aeg + kasutaja isiklik valik
      profiilis + topeltsaatmise tõke)
+   - `supabase/migrations/0010_muutmise_ajatempel.sql` (mitme admini
+     kaitse: kui kaks adminit muudavad sama kirjet korraga, ei
+     kirjutata kellegi tööd vaikselt üle, vaid hilisem salvestaja
+     saab hoiatuse)
    - `supabase/seed.sql` (2026 päris kava: 17 ala, 171 esinemist)
    - `supabase/seed2_esinejad.sql` (teeb pealkirjadest 160 päris
      esinejat: muusikaaladel nimed, töötubadel juhendajad; TBA jms

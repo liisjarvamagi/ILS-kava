@@ -3,7 +3,7 @@
 // jm, mida näidatakse esinemise lehe all. Ikoon on emoji.
 import { useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
-import { revalidatePublic } from './adminShared';
+import { revalidatePublic, guardedUpdate, CONFLICT_MSG } from './adminShared';
 
 const EMPTY = {
   id: null, icon: 'ℹ️', title_et: '', title_en: '',
@@ -22,7 +22,8 @@ export default function AdminInfo({ data, onChanged }) {
       id: row.id, icon: row.icon || 'ℹ️',
       title_et: row.title_et || '', title_en: row.title_en || '',
       body_et: row.body_et || '', body_en: row.body_en || '',
-      sort_order: row.sort_order ?? 0, is_active: row.is_active ?? true
+      sort_order: row.sort_order ?? 0, is_active: row.is_active ?? true,
+      updated_at: row.updated_at || null // üle kirjutamise kaitse
     });
     setMsg(null);
     window.scrollTo({ top: 0 });
@@ -43,12 +44,23 @@ export default function AdminInfo({ data, onChanged }) {
       sort_order: Number(form.sort_order) || 0,
       is_active: form.is_active
     };
-    const q = form.id
-      ? supabase.from('event_info').update(payload).eq('id', form.id)
-      : supabase.from('event_info').insert(payload);
-    const { error } = await q;
+    let errText = null;
+    if (form.id) {
+      const r = await guardedUpdate(supabase, 'event_info', form.id, form.updated_at, payload);
+      if (r.conflict) {
+        setBusy(false);
+        setMsg(CONFLICT_MSG);
+        await onChanged();
+        return;
+      }
+      errText = r.error || null;
+      if (r.ok) set({ updated_at: r.stamp });
+    } else {
+      const { error } = await supabase.from('event_info').insert(payload);
+      errText = error?.message || null;
+    }
     setBusy(false);
-    if (error) { setMsg('Salvestus ebaõnnestus: ' + error.message); return; }
+    if (errText) { setMsg('Salvestus ebaõnnestus: ' + errText); return; }
     await revalidatePublic();
     await onChanged();
     setMsg('Salvestatud ✅');

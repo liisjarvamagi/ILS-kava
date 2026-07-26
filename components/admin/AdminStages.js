@@ -3,7 +3,7 @@
 // (kaardi ja juhiste jaoks) ja aktiivsuse lüliti.
 import { useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
-import { slugify, revalidatePublic } from './adminShared';
+import { slugify, revalidatePublic, guardedUpdate, CONFLICT_MSG } from './adminShared';
 
 const EMPTY = {
   id: null, slug: '', name_et: '', name_en: '', descr_et: '', descr_en: '',
@@ -24,7 +24,8 @@ export default function AdminStages({ data, onChanged }) {
       descr_et: s.descr_et || '', descr_en: s.descr_en || '',
       color: s.color || '#7aab9a', sort_order: s.sort_order ?? 0,
       lat: s.lat ?? '', lng: s.lng ?? '',
-      map_x: s.map_x ?? '', map_y: s.map_y ?? '', is_active: s.is_active
+      map_x: s.map_x ?? '', map_y: s.map_y ?? '', is_active: s.is_active,
+      updated_at: s.updated_at || null // üle kirjutamise kaitse
     });
     setMsg(null);
     window.scrollTo({ top: 0 });
@@ -55,12 +56,23 @@ export default function AdminStages({ data, onChanged }) {
       map_y: form.map_y === '' ? null : Number(form.map_y),
       is_active: form.is_active
     };
-    const q = form.id
-      ? supabase.from('stages').update(payload).eq('id', form.id)
-      : supabase.from('stages').insert(payload);
-    const { error } = await q;
+    let errText = null;
+    if (form.id) {
+      const r = await guardedUpdate(supabase, 'stages', form.id, form.updated_at, payload);
+      if (r.conflict) {
+        setBusy(false);
+        setMsg(CONFLICT_MSG);
+        await onChanged();
+        return;
+      }
+      errText = r.error || null;
+      if (r.ok) set({ updated_at: r.stamp });
+    } else {
+      const { error } = await supabase.from('stages').insert(payload);
+      errText = error?.message || null;
+    }
     setBusy(false);
-    if (error) { setMsg('Salvestus ebaõnnestus: ' + error.message); return; }
+    if (errText) { setMsg('Salvestus ebaõnnestus: ' + errText); return; }
     await revalidatePublic();
     await onChanged();
     setMsg('Salvestatud ✅');

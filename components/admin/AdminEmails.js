@@ -30,13 +30,24 @@ export default function AdminEmails() {
     }
     setBusy(true); setMsg(null);
     const supabase = supabaseBrowser();
-    const { error } = await supabase.from('email_templates').update({
+    // Üle kirjutamise kaitse: kui teine admin muutis malli vahepeal,
+    // ei kirjuta me tema tööd üle
+    let q = supabase.from('email_templates').update({
       subject_et: tpl.subject_et, subject_en: tpl.subject_en,
       body_et: tpl.body_et, body_en: tpl.body_en,
       send_hour: Number(tpl.send_hour ?? 9)
     }).eq('key', 'daily_schedule');
+    if (tpl.updated_at) q = q.eq('updated_at', tpl.updated_at);
+    const { data, error } = await q.select('updated_at');
     setBusy(false);
-    setMsg(error ? 'Salvestus ebaõnnestus: ' + error.message : 'Salvestatud ✅');
+    if (error) { setMsg('Salvestus ebaõnnestus: ' + error.message); return; }
+    if (!data?.length) {
+      setMsg('Keegi teine muutis meilimalli vahepeal. Sinu muudatust EI '
+        + 'salvestatud — lae leht uuesti ja vaata tema versioon üle.');
+      return;
+    }
+    setTpl((t) => ({ ...t, updated_at: data[0].updated_at }));
+    setMsg('Salvestatud ✅');
   }
 
   async function sendTest() {

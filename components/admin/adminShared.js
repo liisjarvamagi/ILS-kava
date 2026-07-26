@@ -69,6 +69,27 @@ export async function uploadToStorage(bucket, file, baseName) {
   return data.publicUrl;
 }
 
+// Üle kirjutamise kaitse mitme admini jaoks. Vorm jätab rea avamisel
+// meelde tema viimase muutmise ajatempli (updated_at). Salvestamisel
+// uuendame rida AINULT siis, kui ajatempel on ikka sama — kui teine
+// admin jõudis vahepeal sama rida muuta (või selle kustutada), ei
+// lähe tema töö kaotsi, vaid salvestaja saab hoiatuse.
+export const CONFLICT_MSG = 'Keegi teine muutis (või kustutas) seda kirjet '
+  + 'vahepeal. Sinu muudatust EI salvestatud, et tema tööd mitte üle '
+  + 'kirjutada. Andmed on nüüd värskendatud — vaata üle ja salvesta uuesti.';
+
+export async function guardedUpdate(supabase, table, id, loadedStamp, payload) {
+  let q = supabase.from(table).update(payload).eq('id', id);
+  // Kui ajatemplit pole (nt 0010 SQL on tegemata), salvestame vanaviisi
+  if (loadedStamp) q = q.eq('updated_at', loadedStamp);
+  const { data, error } = await q.select('id, updated_at');
+  if (error) return { error: error.message };
+  if (!data?.length) return { conflict: true };
+  // uus ajatempel tagasi vormile, et järgmine salvestus samast vormist
+  // ei annaks valehäiret
+  return { ok: true, stamp: data[0].updated_at };
+}
+
 // Avaliku kava kohene uuendus: server kontrollib, et kutsuja on admin.
 export async function revalidatePublic() {
   try {

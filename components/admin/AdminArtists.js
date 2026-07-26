@@ -4,7 +4,7 @@
 // play nupu andmed.
 import { useMemo, useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
-import { slugify, revalidatePublic, uploadToStorage } from './adminShared';
+import { slugify, revalidatePublic, uploadToStorage, guardedUpdate, CONFLICT_MSG } from './adminShared';
 
 const LINK_KEYS = ['instagram', 'facebook', 'spotify', 'soundcloud', 'youtube', 'website'];
 const EMPTY = {
@@ -62,7 +62,8 @@ export default function AdminArtists({ data, onChanged }) {
       image_url: a.image_url || '', bio_et: a.bio_et || '', bio_en: a.bio_en || '',
       track_link: a.track_link || '', track_title: a.track_title || '',
       track_file_url: a.track_file_url || '',
-      links: a.links && typeof a.links === 'object' ? a.links : {}
+      links: a.links && typeof a.links === 'object' ? a.links : {},
+      updated_at: a.updated_at || null // üle kirjutamise kaitse
     });
     setMsg(null);
     window.scrollTo({ top: 0 });
@@ -89,12 +90,23 @@ export default function AdminArtists({ data, onChanged }) {
       track_file_url: form.track_file_url.trim() || null,
       links
     };
-    const q = form.id
-      ? supabase.from('artists').update(payload).eq('id', form.id)
-      : supabase.from('artists').insert(payload);
-    const { error } = await q;
+    let error = null;
+    if (form.id) {
+      const r = await guardedUpdate(supabase, 'artists', form.id, form.updated_at, payload);
+      if (r.conflict) {
+        setBusy(false);
+        setMsg(CONFLICT_MSG);
+        await onChanged();
+        return;
+      }
+      error = r.error || null;
+      if (r.ok) setForm((f) => ({ ...f, updated_at: r.stamp }));
+    } else {
+      ({ error } = await supabase.from('artists').insert(payload));
+      error = error?.message || null;
+    }
     setBusy(false);
-    if (error) { setMsg('Salvestus ebaõnnestus: ' + error.message); return; }
+    if (error) { setMsg('Salvestus ebaõnnestus: ' + error); return; }
     await revalidatePublic();
     await onChanged();
     setMsg('Salvestatud ✅');

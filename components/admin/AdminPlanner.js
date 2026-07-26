@@ -9,7 +9,7 @@
 // salvestub andmebaasi ja värskendab avalikku kava.
 import { useMemo, useRef, useState } from 'react';
 import { supabaseBrowser } from '../../lib/supabaseClient';
-import { revalidatePublic } from './adminShared';
+import { revalidatePublic, guardedUpdate, CONFLICT_MSG } from './adminShared';
 import {
   PX_PER_MIN, ROW_H, SNAP_MIN, snap, computeAxis, msToX,
   findClashes, shiftTimes, resizeEnd, fmtHM
@@ -105,16 +105,23 @@ export default function AdminPlanner({ data, onChanged }) {
       start_at: draft.start_at,
       end_at: draft.end_at,
       stage_id: draft.stage_id
-    });
+    }, perf.updated_at);
   }
 
-  async function persist(id, patch) {
+  async function persist(id, patch, loadedStamp) {
     setBusy(true); setMsg(null);
     const supabase = supabaseBrowser();
     if (!supabase) { setBusy(false); setMsg('Andmebaas seadistamata'); return; }
-    const { error } = await supabase.from('performances').update(patch).eq('id', id);
-    if (error) setMsg('Salvestus ebaõnnestus: ' + error.message);
-    else { await revalidatePublic(); await onChanged(); }
+    const r = await guardedUpdate(supabase, 'performances', id, loadedStamp, patch);
+    if (r.conflict) {
+      setMsg(CONFLICT_MSG);
+      await onChanged(); // plokk hüppab tagasi teise admini seisu peale
+    } else if (r.error) {
+      setMsg('Salvestus ebaõnnestus: ' + r.error);
+    } else {
+      await revalidatePublic();
+      await onChanged();
+    }
     setBusy(false);
   }
 
@@ -122,6 +129,7 @@ export default function AdminPlanner({ data, onChanged }) {
   function openEdit(p) {
     setPopup({
       mode: 'edit', id: p.id,
+      updated_at: p.updated_at || null, // üle kirjutamise kaitse
       stage_id: p.stage_id,
       start: fmtHM(+new Date(p.start_at)),
       end: fmtHM(+new Date(p.end_at)),
@@ -188,7 +196,15 @@ export default function AdminPlanner({ data, onChanged }) {
     };
     let perfId = pp.id, error = null;
     if (pp.mode === 'edit') {
-      ({ error } = await supabase.from('performances').update(payload).eq('id', perfId));
+      const r = await guardedUpdate(supabase, 'performances', perfId, pp.updated_at, payload);
+      if (r.conflict) {
+        setBusy(false);
+        setMsg(CONFLICT_MSG);
+        setPopup(null);
+        await onChanged();
+        return;
+      }
+      error = r.error ? { message: r.error } : null;
     } else {
       const res = await supabase.from('performances')
         .insert({ ...payload, is_background: false }).select('id').single();
